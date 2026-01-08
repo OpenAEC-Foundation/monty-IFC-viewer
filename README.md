@@ -41,6 +41,10 @@ Een webgebaseerde IFC (Industry Foundation Classes) viewer met bouwvolgorde visu
 
 Bekijk de live demo op: https://openaec-foundation.github.io/monty-IFC-viewer/
 
+## Auteur
+
+Gemaakt door **Piet Mol**
+
 ## Licentie
 
 Open source - Onderdeel van de [Open AEC Foundation](https://openaec-foundation.github.io/website/)
