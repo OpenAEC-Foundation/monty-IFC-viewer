@@ -1,0 +1,2570 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IFC Bouwvolgorde Viewer</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/web-ifc@0.0.66/web-ifc-api-iife.js"></script>
+    <style>
+        :root {
+            --primary: #2563EB;
+            --primary-hover: #1D4ED8;
+            --primary-light: #DBEAFE;
+            --accent: #10B981;
+            --accent-hover: #059669;
+            --bg-dark: #0F172A;
+            --bg-card: #1E293B;
+            --bg-card-hover: #334155;
+            --bg-input: #0F172A;
+            --text-primary: #F8FAFC;
+            --text-secondary: #94A3B8;
+            --text-muted: #64748B;
+            --border: #334155;
+            --border-light: #475569;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --error: #EF4444;
+            --highlight: #FBBF24;
+            --hover: #FDE68A;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-card);
+            height: 60px;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            border-bottom: 1px solid var(--border);
+            gap: 16px;
+            flex-shrink: 0;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .logo-text {
+            font-weight: 700;
+            font-size: 1.2rem;
+            letter-spacing: -0.5px;
+        }
+
+        .logo-text span {
+            color: var(--accent);
+        }
+
+        .file-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            background: var(--bg-input);
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .file-info.has-file {
+            color: var(--accent);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow);
+        }
+
+        .btn-secondary {
+            background: var(--bg-card-hover);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+
+        .btn-icon {
+            padding: 8px;
+            min-width: 36px;
+            justify-content: center;
+        }
+
+        .btn-danger {
+            background: var(--error);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #DC2626;
+        }
+
+        /* Main Layout */
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 400px;
+            background: var(--bg-card);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .section {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .section-title {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 14px;
+        }
+
+        /* Parameter Selection */
+        .param-select-wrapper {
+            position: relative;
+        }
+
+        .param-select {
+            width: 100%;
+            padding: 12px 14px;
+            padding-right: 40px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            background: var(--bg-input);
+            color: var(--text-primary);
+            cursor: pointer;
+            appearance: none;
+            transition: border-color 0.2s;
+        }
+
+        .param-select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .param-select:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .param-select-wrapper::after {
+            content: '▼';
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            pointer-events: none;
+        }
+
+        .param-stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 14px;
+        }
+
+        .param-stat {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .param-stat strong {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        /* Player Section */
+        .player-display {
+            background: linear-gradient(135deg, var(--bg-input), var(--bg-card-hover));
+            border-radius: 16px;
+            padding: 28px;
+            text-align: center;
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .player-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .player-value {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--accent);
+            line-height: 1;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .player-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 10px;
+        }
+
+        /* Player Controls */
+        .player-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .player-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--bg-input);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .player-btn:hover:not(:disabled) {
+            background: var(--bg-card-hover);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .player-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .player-btn.play-btn {
+            width: 60px;
+            height: 60px;
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .player-btn.play-btn:hover:not(:disabled) {
+            background: var(--primary-hover);
+            border-color: var(--primary-hover);
+        }
+
+        .player-btn.play-btn.playing {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        /* Progress */
+        .progress-section {
+            margin-bottom: 20px;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: var(--bg-input);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            width: 0%;
+            transition: width 0.3s ease-out;
+            border-radius: 4px;
+        }
+
+        .progress-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .progress-stats span {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Speed Control */
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px;
+            background: var(--bg-input);
+            border-radius: 10px;
+        }
+
+        .speed-control label {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .speed-slider {
+            flex: 1;
+            -webkit-appearance: none;
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        .speed-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: var(--primary);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .speed-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .speed-value {
+            font-size: 0.85rem;
+            font-weight: 600;
+            min-width: 45px;
+            text-align: right;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent);
+        }
+
+        /* Values List */
+        .values-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .values-header {
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .values-header h3 {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+        }
+
+        .values-count {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            background: var(--bg-input);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .values-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            user-select: none;
+        }
+
+        .value-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 6px;
+            border: 1px solid transparent;
+        }
+
+        .value-item:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .value-item.selected {
+            background: rgba(251, 191, 36, 0.2);
+            border-color: var(--highlight);
+        }
+
+        .value-item.selected .value-icon {
+            background: var(--highlight);
+            color: var(--bg-dark);
+        }
+
+        .value-item.selected .value-status {
+            background: var(--highlight);
+        }
+
+        .value-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: var(--bg-input);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 14px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            flex-shrink: 0;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .value-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .value-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .value-meta {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .value-status {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--border);
+            flex-shrink: 0;
+        }
+
+        /* Viewer Container */
+        #viewer-container {
+            flex: 1;
+            position: relative;
+            background: var(--bg-dark);
+            overflow: hidden;
+        }
+
+        #viewer-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* Property Panel - Fixed overlay */
+        .property-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 320px;
+            max-height: calc(100% - 100px);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            display: none;
+            flex-direction: column;
+            z-index: 30;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .property-panel.open {
+            display: flex;
+        }
+
+        .property-panel-header {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .property-panel-header h3 {
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .property-panel-close {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--bg-input);
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        .property-panel-close:hover {
+            background: var(--error);
+            border-color: var(--error);
+        }
+
+        .property-panel-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        .property-group {
+            margin-bottom: 12px;
+        }
+
+        .property-group-title {
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .property-row {
+            display: flex;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(51, 65, 85, 0.3);
+            font-size: 0.75rem;
+        }
+
+        .property-row:last-child {
+            border-bottom: none;
+        }
+
+        .property-name {
+            flex: 1;
+            color: var(--text-secondary);
+            word-break: break-word;
+        }
+
+        .property-value {
+            flex: 1;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            text-align: right;
+            word-break: break-word;
+        }
+
+        .property-empty {
+            text-align: center;
+            padding: 30px 16px;
+            color: var(--text-muted);
+        }
+
+        .property-empty-icon {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+            opacity: 0.5;
+        }
+
+        /* Context Menu */
+        .context-menu {
+            position: fixed;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 6px 0;
+            min-width: 180px;
+            z-index: 100;
+            box-shadow: var(--shadow-lg);
+            display: none;
+        }
+
+        .context-menu.visible {
+            display: block;
+        }
+
+        .context-menu-item {
+            padding: 10px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            transition: background 0.15s;
+        }
+
+        .context-menu-item:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .context-menu-item .icon {
+            width: 20px;
+            text-align: center;
+        }
+
+        .context-menu-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 6px 0;
+        }
+
+        /* Drop Zone Overlay */
+        .drop-zone {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-dark);
+            z-index: 20;
+            transition: all 0.3s;
+        }
+
+        .drop-zone.hidden {
+            display: none;
+        }
+
+        .drop-zone.dragover {
+            background: rgba(37, 99, 235, 0.1);
+        }
+
+        .drop-zone.dragover .drop-zone-box {
+            border-color: var(--primary);
+            background: rgba(37, 99, 235, 0.05);
+            transform: scale(1.02);
+        }
+
+        .drop-zone-box {
+            width: 500px;
+            max-width: 90%;
+            padding: 60px 40px;
+            border: 2px dashed var(--border);
+            border-radius: 20px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .drop-zone-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 24px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+        }
+
+        .drop-zone-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .drop-zone-subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        .drop-zone-formats {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 24px;
+        }
+
+        .format-badge {
+            padding: 6px 14px;
+            background: var(--bg-card);
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent);
+        }
+
+        .drop-zone-or {
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+
+        .file-input-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background: var(--primary);
+            color: white;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .file-input-label:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 23, 42, 0.95);
+            z-index: 15;
+        }
+
+        .loading-overlay.hidden {
+            display: none;
+        }
+
+        .loader {
+            width: 56px;
+            height: 56px;
+            border: 4px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loader-text {
+            margin-top: 20px;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .loader-progress {
+            margin-top: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent);
+            font-size: 0.85rem;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: var(--bg-card);
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            box-shadow: var(--shadow-lg);
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid var(--border);
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--success);
+        }
+
+        .status-dot.loading {
+            background: var(--warning);
+            animation: pulse 1s infinite;
+        }
+
+        .status-dot.error {
+            background: var(--error);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Viewer Controls */
+        .viewer-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 10;
+        }
+
+        .viewer-controls button {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            transition: all 0.2s;
+        }
+
+        .viewer-controls button:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        /* Reset button - normal style by default, highlighted when active */
+        .viewer-controls button.has-reset {
+            background: var(--highlight);
+            border-color: var(--highlight);
+            color: var(--bg-dark);
+        }
+
+        .viewer-controls button.has-reset:hover {
+            background: #F59E0B;
+            border-color: #F59E0B;
+        }
+
+        /* Selection Info */
+        .selection-info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: var(--bg-card);
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            box-shadow: var(--shadow-lg);
+            z-index: 10;
+            display: none;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid var(--highlight);
+        }
+
+        .selection-info.visible {
+            display: flex;
+        }
+
+        .selection-info-text {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .selection-info-text .icon {
+            color: var(--highlight);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state-icon {
+            font-size: 2rem;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-input);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--border-light);
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <a href="#" class="logo">
+            <div class="logo-icon">IFC</div>
+            <span class="logo-text">Bouw<span>volgorde</span></span>
+        </a>
+
+        <div class="file-controls">
+            <div class="file-info" id="fileInfo">
+                <span>📄</span>
+                <span id="fileName">Geen bestand geladen</span>
+            </div>
+            <button class="btn btn-secondary btn-icon" id="btnLoadFile" title="Open IFC bestand">📂</button>
+            <button class="btn btn-danger btn-icon" id="btnClearFile" title="Verwijder bestand" style="display: none;">✕</button>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <aside class="sidebar">
+            <div class="section">
+                <h3 class="section-title">Parameter voor volgorde</h3>
+                <div class="param-select-wrapper">
+                    <select class="param-select" id="paramSelect" disabled>
+                        <option value="">-- Laad eerst een IFC bestand --</option>
+                    </select>
+                </div>
+                <div class="param-stats">
+                    <div class="param-stat">
+                        <span>Unieke waarden:</span>
+                        <strong id="uniqueValuesCount">-</strong>
+                    </div>
+                    <div class="param-stat">
+                        <span>Elementen:</span>
+                        <strong id="objectsWithParamCount">-</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="player-display">
+                    <div class="player-label" id="currentParamLabel">Huidige waarde</div>
+                    <div class="player-value" id="currentValueDisplay">-</div>
+                    <div class="player-subtitle" id="currentValueSubtitle">Laad een IFC bestand</div>
+                </div>
+
+                <div class="player-controls">
+                    <button class="player-btn" id="btnFirst" disabled title="Eerste (Home)">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+                    </button>
+                    <button class="player-btn" id="btnPrev" disabled title="Vorige (←)">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+                    </button>
+                    <button class="player-btn play-btn" id="btnPlay" disabled title="Afspelen (Spatie)">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" id="playIcon"><path d="M8 5v14l11-7z"/></svg>
+                    </button>
+                    <button class="player-btn" id="btnNext" disabled title="Volgende (→)">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+                    </button>
+                    <button class="player-btn" id="btnLast" disabled title="Laatste (End)">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+                    </button>
+                </div>
+
+                <div class="progress-section">
+                    <div class="progress-bar" id="progressBar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="progress-stats">
+                        <span><span id="visibleCount">0</span> zichtbaar</span>
+                        <span><span id="totalCount">0</span> totaal</span>
+                    </div>
+                </div>
+
+                <div class="speed-control">
+                    <label>Snelheid</label>
+                    <input type="range" class="speed-slider" id="speedSlider" min="200" max="3000" value="1000" step="100">
+                    <span class="speed-value" id="speedValue">1.0s</span>
+                </div>
+            </div>
+
+            <div class="values-section">
+                <div class="values-header">
+                    <h3 id="valuesHeader">Waarden</h3>
+                    <span class="values-count" id="valuesCount">0</span>
+                </div>
+                <div class="values-list" id="valuesList">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📁</div>
+                        <p>Laad een IFC bestand om te beginnen</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <div id="viewer-container">
+            <canvas id="viewer-canvas"></canvas>
+
+            <!-- Drop Zone -->
+            <div class="drop-zone" id="dropZone">
+                <div class="drop-zone-box">
+                    <div class="drop-zone-icon">📦</div>
+                    <h2 class="drop-zone-title">Sleep je IFC bestand hierheen</h2>
+                    <p class="drop-zone-subtitle">
+                        Upload een IFC bestand om de bouwvolgorde te visualiseren.<br>
+                        Elementen worden gegroepeerd op basis van parameters zoals Mark.
+                    </p>
+                    <div class="drop-zone-formats">
+                        <span class="format-badge">.ifc</span>
+                        <span class="format-badge">.ifczip</span>
+                    </div>
+                    <p class="drop-zone-or">of</p>
+                    <label class="file-input-label" for="file-input">
+                        <span>📂</span>
+                        Kies bestand
+                    </label>
+                    <input type="file" id="file-input" accept=".ifc,.ifczip">
+                </div>
+            </div>
+
+            <!-- Loading Overlay -->
+            <div class="loading-overlay hidden" id="loadingOverlay">
+                <div class="loader"></div>
+                <div class="loader-text" id="loadingText">IFC bestand laden...</div>
+                <div class="loader-progress" id="loadingProgress"></div>
+            </div>
+
+            <!-- Status Bar -->
+            <div class="status-bar" style="display: none;" id="statusBar">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">Gereed</span>
+            </div>
+
+            <!-- Selection Info -->
+            <div class="selection-info" id="selectionInfo">
+                <div class="selection-info-text">
+                    <span class="icon">🎯</span>
+                    <span id="selectionText">0 elementen geselecteerd</span>
+                </div>
+            </div>
+
+            <!-- Viewer Controls -->
+            <div class="viewer-controls" style="display: none;" id="viewerControls">
+                <button id="btnZoomFit" title="Zoom alles">🔍</button>
+                <button id="btnResetView" title="Reset camera">🏠</button>
+                <button id="btnClearHighlight" title="Reset weergave (Esc)">↩️</button>
+            </div>
+
+            <!-- Property Panel -->
+            <div class="property-panel" id="propertyPanel">
+                <div class="property-panel-header">
+                    <h3>📋 Eigenschappen</h3>
+                    <button class="property-panel-close" id="btnCloseProperties">✕</button>
+                </div>
+                <div class="property-panel-content" id="propertyContent">
+                    <div class="property-empty">
+                        <div class="property-empty-icon">👆</div>
+                        <p>Selecteer een element</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Context Menu -->
+            <div class="context-menu" id="contextMenu">
+                <div class="context-menu-item" id="ctxProperties">
+                    <span class="icon">📋</span>
+                    <span>Eigenschappen</span>
+                </div>
+                <div class="context-menu-item" id="ctxIsolate">
+                    <span class="icon">🎯</span>
+                    <span>Isoleren</span>
+                </div>
+                <div class="context-menu-item" id="ctxHide">
+                    <span class="icon">👁️‍🗨️</span>
+                    <span>Verbergen</span>
+                </div>
+                <div class="context-menu-divider"></div>
+                <div class="context-menu-item" id="ctxShowAll">
+                    <span class="icon">👁️</span>
+                    <span>Alles tonen</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class IFCBouwvolgordeViewer {
+            constructor() {
+                // Three.js
+                this.scene = null;
+                this.camera = null;
+                this.renderer = null;
+                this.meshes = new Map();
+                this.allMeshes = [];
+                this.elementMaterials = new Map();
+                
+                // Raycaster for picking
+                this.raycaster = new THREE.Raycaster();
+                this.mouse = new THREE.Vector2();
+                
+                // Selection & Hover
+                this.hoveredMesh = null;
+                this.selectedExpressIds = new Set();
+                this.hiddenExpressIds = new Set();
+                this.isolatedExpressIds = new Set();
+                this.lastClickedIndex = null;
+                
+                // Context menu
+                this.contextMenuTarget = null;
+                
+                // IFC
+                this.ifcApi = null;
+                this.modelId = null;
+                
+                // Data
+                this.elements = [];
+                this.elementProperties = new Map();
+                this.allParameters = new Map();
+                
+                // List selection
+                this.selectedValueIndices = new Set();
+                
+                // Player
+                this.valueGroups = new Map();
+                this.sortedValues = [];
+                this.currentIndex = -1;
+                this.isPlaying = false;
+                this.playInterval = null;
+                this.speed = 1000;
+
+                this.initThree();
+                this.initIFC();
+                this.initUI();
+            }
+
+            async initIFC() {
+                this.ifcApi = new WebIFC.IfcAPI();
+                await this.ifcApi.Init();
+                console.log('web-ifc initialized');
+            }
+
+            initThree() {
+                const container = document.getElementById('viewer-container');
+                const canvas = document.getElementById('viewer-canvas');
+
+                // Scene
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x0F172A);
+
+                // Camera
+                this.camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 10000);
+                this.camera.position.set(30, 30, 30);
+
+                // Renderer
+                this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+                this.renderer.setSize(container.clientWidth, container.clientHeight);
+                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+                // Lights
+                const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+                this.scene.add(ambient);
+
+                const directional = new THREE.DirectionalLight(0xffffff, 0.8);
+                directional.position.set(50, 100, 50);
+                this.scene.add(directional);
+
+                const directional2 = new THREE.DirectionalLight(0xffffff, 0.4);
+                directional2.position.set(-50, 50, -50);
+                this.scene.add(directional2);
+
+                // Grid
+                const grid = new THREE.GridHelper(100, 50, 0x334155, 0x1E293B);
+                this.scene.add(grid);
+
+                // Controls
+                this.setupControls(canvas);
+
+                // Resize handler
+                const handleResize = () => {
+                    const width = container.clientWidth;
+                    const height = container.clientHeight;
+                    this.camera.aspect = width / height;
+                    this.camera.updateProjectionMatrix();
+                    this.renderer.setSize(width, height);
+                };
+                
+                window.addEventListener('resize', handleResize);
+                // Also use ResizeObserver for container size changes
+                const resizeObserver = new ResizeObserver(handleResize);
+                resizeObserver.observe(container);
+
+                // Animation loop
+                this.animate();
+            }
+
+            setupControls(canvas) {
+                let isDragging = false;
+                let isRightDrag = false;
+                let prevX = 0, prevY = 0;
+                let mouseDownTime = 0;
+                let mouseDownPos = { x: 0, y: 0 };
+                this.spherical = { theta: Math.PI / 4, phi: Math.PI / 4, radius: 50 };
+                this.target = new THREE.Vector3(0, 0, 0);
+
+                const updateCamera = () => {
+                    this.camera.position.x = this.target.x + this.spherical.radius * Math.sin(this.spherical.phi) * Math.cos(this.spherical.theta);
+                    this.camera.position.y = this.target.y + this.spherical.radius * Math.cos(this.spherical.phi);
+                    this.camera.position.z = this.target.z + this.spherical.radius * Math.sin(this.spherical.phi) * Math.sin(this.spherical.theta);
+                    this.camera.lookAt(this.target);
+                };
+                this.updateCamera = updateCamera;
+
+                canvas.addEventListener('mousedown', (e) => {
+                    isDragging = true;
+                    isRightDrag = e.button === 2;
+                    prevX = e.clientX;
+                    prevY = e.clientY;
+                    mouseDownTime = Date.now();
+                    mouseDownPos = { x: e.clientX, y: e.clientY };
+                });
+
+                canvas.addEventListener('mouseup', (e) => {
+                    const timeDiff = Date.now() - mouseDownTime;
+                    const distMoved = Math.sqrt(
+                        Math.pow(e.clientX - mouseDownPos.x, 2) + 
+                        Math.pow(e.clientY - mouseDownPos.y, 2)
+                    );
+                    
+                    if (timeDiff < 200 && distMoved < 5) {
+                        if (e.button === 0) {
+                            this.handleClick(e);
+                        }
+                    }
+                    
+                    isDragging = false;
+                });
+                
+                canvas.addEventListener('mouseleave', () => {
+                    isDragging = false;
+                    this.clearHover();
+                });
+                
+                canvas.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    const timeDiff = Date.now() - mouseDownTime;
+                    const distMoved = Math.sqrt(
+                        Math.pow(e.clientX - mouseDownPos.x, 2) + 
+                        Math.pow(e.clientY - mouseDownPos.y, 2)
+                    );
+                    
+                    if (timeDiff < 300 && distMoved < 10) {
+                        this.showContextMenu(e);
+                    }
+                });
+
+                canvas.addEventListener('mousemove', (e) => {
+                    const rect = canvas.getBoundingClientRect();
+                    this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                    this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+                    
+                    if (!isDragging) {
+                        this.handleHover();
+                        return;
+                    }
+                    
+                    const dx = e.clientX - prevX;
+                    const dy = e.clientY - prevY;
+
+                    if (isRightDrag) {
+                        const panSpeed = 0.05;
+                        const right = new THREE.Vector3();
+                        const up = new THREE.Vector3(0, 1, 0);
+                        right.crossVectors(this.camera.getWorldDirection(new THREE.Vector3()), up).normalize();
+                        this.target.addScaledVector(right, -dx * panSpeed);
+                        this.target.y += dy * panSpeed;
+                    } else {
+                        this.spherical.theta += dx * 0.01;
+                        this.spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, this.spherical.phi - dy * 0.01));
+                    }
+
+                    prevX = e.clientX;
+                    prevY = e.clientY;
+                    updateCamera();
+                });
+
+                canvas.addEventListener('wheel', (e) => {
+                    e.preventDefault();
+                    this.spherical.radius *= e.deltaY > 0 ? 1.1 : 0.9;
+                    this.spherical.radius = Math.max(1, Math.min(500, this.spherical.radius));
+                    updateCamera();
+                });
+
+                updateCamera();
+                
+                document.addEventListener('click', (e) => {
+                    if (!e.target.closest('.context-menu')) {
+                        this.hideContextMenu();
+                    }
+                });
+            }
+
+            handleHover() {
+                if (this.allMeshes.length === 0) return;
+                
+                this.raycaster.setFromCamera(this.mouse, this.camera);
+                const intersects = this.raycaster.intersectObjects(this.allMeshes, false);
+                
+                let hitMesh = null;
+                for (const intersect of intersects) {
+                    const expressId = intersect.object.userData.expressId;
+                    if (intersect.object.visible && 
+                        intersect.object.material.opacity > 0.2 &&
+                        !this.hiddenExpressIds.has(expressId)) {
+                        hitMesh = intersect.object;
+                        break;
+                    }
+                }
+                
+                if (hitMesh !== this.hoveredMesh) {
+                    this.clearHover();
+                    if (hitMesh) {
+                        this.hoveredMesh = hitMesh;
+                        this.applyHoverEffect(hitMesh);
+                    }
+                }
+            }
+
+            applyHoverEffect(mesh) {
+                if (!mesh.userData.originalEmissive) {
+                    mesh.userData.originalEmissive = mesh.material.emissive ? mesh.material.emissive.getHex() : 0;
+                }
+                if (mesh.material.emissive) {
+                    mesh.material.emissive.setHex(0x444400);
+                }
+                document.getElementById('viewer-canvas').style.cursor = 'pointer';
+            }
+
+            clearHover() {
+                if (this.hoveredMesh && this.hoveredMesh.material) {
+                    if (this.hoveredMesh.material.emissive && this.hoveredMesh.userData.originalEmissive !== undefined) {
+                        this.hoveredMesh.material.emissive.setHex(this.hoveredMesh.userData.originalEmissive);
+                    }
+                }
+                this.hoveredMesh = null;
+                document.getElementById('viewer-canvas').style.cursor = 'default';
+            }
+
+            handleClick(event) {
+                if (this.allMeshes.length === 0) return;
+                
+                this.raycaster.setFromCamera(this.mouse, this.camera);
+                const intersects = this.raycaster.intersectObjects(this.allMeshes, false);
+                
+                let hitMesh = null;
+                for (const intersect of intersects) {
+                    const expressId = intersect.object.userData.expressId;
+                    if (intersect.object.visible && 
+                        intersect.object.material.opacity > 0.2 &&
+                        !this.hiddenExpressIds.has(expressId)) {
+                        hitMesh = intersect.object;
+                        break;
+                    }
+                }
+                
+                if (hitMesh) {
+                    const expressId = hitMesh.userData.expressId;
+                    
+                    if (event.ctrlKey || event.metaKey) {
+                        if (this.selectedExpressIds.has(expressId)) {
+                            this.selectedExpressIds.delete(expressId);
+                        } else {
+                            this.selectedExpressIds.add(expressId);
+                        }
+                    } else {
+                        this.selectedExpressIds.clear();
+                        this.selectedExpressIds.add(expressId);
+                    }
+                    
+                    this.updateSelectionInfo();
+                    this.updateResetButtonState();
+                    this.updateVisibility();
+                    
+                    if (this.selectedExpressIds.size === 1) {
+                        this.showPropertyPanel(expressId);
+                    } else {
+                        this.closePropertyPanel();
+                    }
+                } else {
+                    if (!event.ctrlKey && !event.metaKey) {
+                        this.clearSelection();
+                    }
+                }
+            }
+
+            showContextMenu(event) {
+                this.raycaster.setFromCamera(this.mouse, this.camera);
+                const intersects = this.raycaster.intersectObjects(this.allMeshes, false);
+                
+                let hitMesh = null;
+                for (const intersect of intersects) {
+                    const expressId = intersect.object.userData.expressId;
+                    if (intersect.object.visible && 
+                        intersect.object.material.opacity > 0.2 &&
+                        !this.hiddenExpressIds.has(expressId)) {
+                        hitMesh = intersect.object;
+                        break;
+                    }
+                }
+                
+                if (hitMesh) {
+                    this.contextMenuTarget = hitMesh.userData.expressId;
+                    
+                    if (!this.selectedExpressIds.has(this.contextMenuTarget)) {
+                        this.selectedExpressIds.clear();
+                        this.selectedExpressIds.add(this.contextMenuTarget);
+                        this.updateSelectionInfo();
+                        this.updateResetButtonState();
+                        this.updateVisibility();
+                    }
+                    
+                    const menu = document.getElementById('contextMenu');
+                    menu.style.left = event.clientX + 'px';
+                    menu.style.top = event.clientY + 'px';
+                    menu.classList.add('visible');
+                }
+            }
+
+            hideContextMenu() {
+                document.getElementById('contextMenu').classList.remove('visible');
+            }
+
+            updateSelectionInfo() {
+                const count = this.selectedExpressIds.size;
+                const infoEl = document.getElementById('selectionInfo');
+                const textEl = document.getElementById('selectionText');
+                
+                if (count > 0) {
+                    textEl.textContent = `${count} element${count !== 1 ? 'en' : ''} geselecteerd`;
+                    infoEl.classList.add('visible');
+                } else {
+                    infoEl.classList.remove('visible');
+                }
+            }
+
+            updateResetButtonState() {
+                const hasResetAction = this.selectedExpressIds.size > 0 || 
+                                       this.isolatedExpressIds.size > 0 || 
+                                       this.hiddenExpressIds.size > 0 ||
+                                       this.selectedValueIndices.size > 0;
+                
+                const btn = document.getElementById('btnClearHighlight');
+                btn.classList.toggle('has-reset', hasResetAction);
+            }
+
+            clearSelection() {
+                this.selectedExpressIds.clear();
+                this.selectedValueIndices.clear();
+                this.isolatedExpressIds.clear();
+                this.closePropertyPanel();
+                this.updateSelectionInfo();
+                this.updateResetButtonState();
+                this.updateValuesList();
+                this.updateVisibility();
+            }
+
+            showPropertyPanel(expressId) {
+                const props = this.elementProperties.get(expressId);
+                const panel = document.getElementById('propertyPanel');
+                const content = document.getElementById('propertyContent');
+                
+                if (!props) {
+                    content.innerHTML = `
+                        <div class="property-empty">
+                            <div class="property-empty-icon">❓</div>
+                            <p>Geen eigenschappen gevonden</p>
+                        </div>
+                    `;
+                    panel.classList.add('open');
+                    return;
+                }
+                
+                const groups = {
+                    'Basis': {},
+                    'Type': {},
+                    'Materiaal': {},
+                    'Afmetingen': {},
+                    'Parameters': {}
+                };
+                
+                for (const [key, value] of Object.entries(props)) {
+                    if (value === null || value === undefined || value === '') continue;
+                    
+                    const lowerKey = key.toLowerCase();
+                    
+                    if (lowerKey.includes('name') || lowerKey.includes('tag') || lowerKey === 'ifc type' || lowerKey === 'expressid') {
+                        groups['Basis'][key] = value;
+                    } else if (lowerKey.includes('type')) {
+                        groups['Type'][key] = value;
+                    } else if (lowerKey.includes('material') || lowerKey.includes('materiaal')) {
+                        groups['Materiaal'][key] = value;
+                    } else if (lowerKey.includes('length') || lowerKey.includes('width') || lowerKey.includes('height') || 
+                               lowerKey.includes('area') || lowerKey.includes('volume') || lowerKey.includes('count') ||
+                               lowerKey.includes('lengte') || lowerKey.includes('breedte') || lowerKey.includes('hoogte')) {
+                        groups['Afmetingen'][key] = value;
+                    } else {
+                        groups['Parameters'][key] = value;
+                    }
+                }
+                
+                let html = '';
+                for (const [groupName, groupProps] of Object.entries(groups)) {
+                    const entries = Object.entries(groupProps);
+                    if (entries.length === 0) continue;
+                    
+                    html += `<div class="property-group">
+                        <div class="property-group-title">${groupName}</div>`;
+                    
+                    for (const [key, value] of entries) {
+                        const displayKey = key.split(' → ').pop();
+                        const displayValue = typeof value === 'number' ? 
+                            (Number.isInteger(value) ? value : value.toFixed(3)) : value;
+                        html += `<div class="property-row">
+                            <span class="property-name">${displayKey}</span>
+                            <span class="property-value">${displayValue}</span>
+                        </div>`;
+                    }
+                    
+                    html += '</div>';
+                }
+                
+                content.innerHTML = html || `
+                    <div class="property-empty">
+                        <div class="property-empty-icon">📭</div>
+                        <p>Geen eigenschappen</p>
+                    </div>
+                `;
+                
+                panel.classList.add('open');
+            }
+
+            closePropertyPanel() {
+                document.getElementById('propertyPanel').classList.remove('open');
+            }
+
+            handleValueListClick(index, event) {
+                const isAlreadySelected = this.selectedValueIndices.has(index);
+                
+                if (isAlreadySelected && !event.ctrlKey && !event.metaKey && !event.shiftKey) {
+                    this.clearHighlightMode();
+                    return;
+                }
+                
+                if (event.shiftKey && this.lastClickedIndex !== null) {
+                    const start = Math.min(this.lastClickedIndex, index);
+                    const end = Math.max(this.lastClickedIndex, index);
+                    
+                    if (!event.ctrlKey && !event.metaKey) {
+                        this.selectedValueIndices.clear();
+                    }
+                    
+                    for (let i = start; i <= end; i++) {
+                        this.selectedValueIndices.add(i);
+                    }
+                } else if (event.ctrlKey || event.metaKey) {
+                    if (this.selectedValueIndices.has(index)) {
+                        this.selectedValueIndices.delete(index);
+                    } else {
+                        this.selectedValueIndices.add(index);
+                    }
+                    this.lastClickedIndex = index;
+                } else {
+                    this.selectedValueIndices.clear();
+                    this.selectedValueIndices.add(index);
+                    this.lastClickedIndex = index;
+                }
+                
+                this.isolatedExpressIds.clear();
+                for (const idx of this.selectedValueIndices) {
+                    const value = this.sortedValues[idx];
+                    const ids = this.valueGroups.get(value) || [];
+                    ids.forEach(id => this.isolatedExpressIds.add(id));
+                }
+                
+                this.updateValuesList();
+                this.updateResetButtonState();
+                this.updateVisibility();
+            }
+
+            clearHighlightMode() {
+                this.selectedValueIndices.clear();
+                this.selectedExpressIds.clear();
+                this.isolatedExpressIds.clear();
+                this.hiddenExpressIds.clear();
+                this.lastClickedIndex = null;
+                this.closePropertyPanel();
+                this.updateSelectionInfo();
+                this.updateResetButtonState();
+                this.updateValuesList();
+                this.updateVisibility();
+            }
+
+            contextShowProperties() {
+                if (this.contextMenuTarget) {
+                    this.showPropertyPanel(this.contextMenuTarget);
+                }
+                this.hideContextMenu();
+            }
+
+            contextIsolate() {
+                if (this.selectedExpressIds.size > 0) {
+                    this.isolatedExpressIds = new Set(this.selectedExpressIds);
+                    this.updateResetButtonState();
+                    this.updateVisibility();
+                }
+                this.hideContextMenu();
+            }
+
+            contextHide() {
+                if (this.selectedExpressIds.size > 0) {
+                    for (const id of this.selectedExpressIds) {
+                        this.hiddenExpressIds.add(id);
+                    }
+                    this.selectedExpressIds.clear();
+                    this.updateSelectionInfo();
+                    this.updateResetButtonState();
+                    this.updateVisibility();
+                }
+                this.hideContextMenu();
+            }
+
+            contextShowAll() {
+                this.hiddenExpressIds.clear();
+                this.isolatedExpressIds.clear();
+                this.updateResetButtonState();
+                this.updateVisibility();
+                this.hideContextMenu();
+            }
+
+            animate() {
+                requestAnimationFrame(() => this.animate());
+                this.renderer.render(this.scene, this.camera);
+            }
+
+            initUI() {
+                document.getElementById('file-input').addEventListener('change', (e) => this.handleFile(e.target.files[0]));
+                document.getElementById('btnLoadFile').addEventListener('click', () => document.getElementById('file-input').click());
+                document.getElementById('btnClearFile').addEventListener('click', () => this.reset());
+
+                const dropZone = document.getElementById('dropZone');
+                const container = document.getElementById('viewer-container');
+
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(event => {
+                    container.addEventListener(event, (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    });
+                });
+
+                container.addEventListener('dragenter', () => dropZone.classList.add('dragover'));
+                container.addEventListener('dragleave', (e) => {
+                    if (!container.contains(e.relatedTarget)) dropZone.classList.remove('dragover');
+                });
+                container.addEventListener('dragover', () => dropZone.classList.add('dragover'));
+                container.addEventListener('drop', (e) => {
+                    dropZone.classList.remove('dragover');
+                    const file = e.dataTransfer.files[0];
+                    if (file && (file.name.endsWith('.ifc') || file.name.endsWith('.ifczip'))) {
+                        this.handleFile(file);
+                    }
+                });
+
+                document.getElementById('btnFirst').addEventListener('click', () => this.goToFirst());
+                document.getElementById('btnPrev').addEventListener('click', () => this.goToPrev());
+                document.getElementById('btnPlay').addEventListener('click', () => this.togglePlay());
+                document.getElementById('btnNext').addEventListener('click', () => this.goToNext());
+                document.getElementById('btnLast').addEventListener('click', () => this.goToLast());
+
+                document.getElementById('speedSlider').addEventListener('input', (e) => {
+                    this.speed = parseInt(e.target.value);
+                    document.getElementById('speedValue').textContent = (this.speed / 1000).toFixed(1) + 's';
+                });
+
+                document.getElementById('progressBar').addEventListener('click', (e) => {
+                    if (this.sortedValues.length === 0) return;
+                    const rect = e.target.getBoundingClientRect();
+                    const percent = (e.clientX - rect.left) / rect.width;
+                    this.goToValue(Math.floor(percent * this.sortedValues.length) - 1);
+                });
+
+                document.getElementById('paramSelect').addEventListener('change', (e) => this.selectParameter(e.target.value));
+
+                document.getElementById('btnZoomFit').addEventListener('click', () => this.zoomFit());
+                document.getElementById('btnResetView').addEventListener('click', () => this.resetView());
+                document.getElementById('btnClearHighlight').addEventListener('click', () => this.clearHighlightMode());
+                
+                document.getElementById('btnCloseProperties').addEventListener('click', () => this.closePropertyPanel());
+
+                document.getElementById('ctxProperties').addEventListener('click', () => this.contextShowProperties());
+                document.getElementById('ctxIsolate').addEventListener('click', () => this.contextIsolate());
+                document.getElementById('ctxHide').addEventListener('click', () => this.contextHide());
+                document.getElementById('ctxShowAll').addEventListener('click', () => this.contextShowAll());
+
+                document.addEventListener('keydown', (e) => {
+                    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+                    if (e.key === ' ') { e.preventDefault(); this.togglePlay(); }
+                    else if (e.key === 'ArrowLeft') this.goToPrev();
+                    else if (e.key === 'ArrowRight') this.goToNext();
+                    else if (e.key === 'Home') this.goToFirst();
+                    else if (e.key === 'End') this.goToLast();
+                    else if (e.key === 'Escape') this.clearHighlightMode();
+                    else if (e.key === 'Delete' || e.key === 'Backspace') {
+                        if (this.selectedExpressIds.size > 0) {
+                            this.contextHide();
+                        }
+                    }
+                });
+            }
+
+            async handleFile(file) {
+                if (!file) return;
+
+                document.getElementById('dropZone').classList.add('hidden');
+                this.showLoading('IFC bestand laden...');
+
+                try {
+                    const buffer = await file.arrayBuffer();
+                    const data = new Uint8Array(buffer);
+
+                    this.showLoading('IFC structuur parsen...');
+                    
+                    this.modelId = this.ifcApi.OpenModel(data);
+                    console.log('Model loaded, ID:', this.modelId);
+
+                    document.getElementById('fileName').textContent = file.name;
+                    document.getElementById('fileInfo').classList.add('has-file');
+                    document.getElementById('btnClearFile').style.display = 'flex';
+
+                    this.showLoading('Geometrie genereren...');
+                    await this.extractGeometry();
+
+                    this.showLoading('Properties ophalen...');
+                    await this.extractProperties();
+
+                    this.hideLoading();
+                    this.showStatus(`${this.elements.length} elementen geladen`, 'success');
+
+                    document.getElementById('statusBar').style.display = 'flex';
+                    document.getElementById('viewerControls').style.display = 'flex';
+
+                    this.zoomFit();
+
+                } catch (error) {
+                    console.error('Error loading IFC:', error);
+                    this.showStatus('Fout bij laden: ' + error.message, 'error');
+                    this.hideLoading();
+                }
+            }
+
+            async extractGeometry() {
+                this.allMeshes.forEach(mesh => this.scene.remove(mesh));
+                this.allMeshes = [];
+                this.meshes.clear();
+                this.elementMaterials = new Map();
+
+                const productTypes = [
+                    WebIFC.IFCWALL, WebIFC.IFCWALLSTANDARDCASE,
+                    WebIFC.IFCSLAB, WebIFC.IFCSLABELEMENTEDCASE, WebIFC.IFCSLABSTANDARDCASE,
+                    WebIFC.IFCCOLUMN, WebIFC.IFCCOLUMNSTANDARDCASE,
+                    WebIFC.IFCBEAM, WebIFC.IFCBEAMSTANDARDCASE,
+                    WebIFC.IFCWINDOW, WebIFC.IFCDOOR,
+                    WebIFC.IFCROOF, WebIFC.IFCSTAIR, WebIFC.IFCSTAIRFLIGHT,
+                    WebIFC.IFCRAILING, WebIFC.IFCPLATE,
+                    WebIFC.IFCMEMBER, WebIFC.IFCMEMBERSTANDARDCASE,
+                    WebIFC.IFCFURNISHINGELEMENT, WebIFC.IFCBUILDINGELEMENTPROXY,
+                    WebIFC.IFCOPENINGELEMENT, WebIFC.IFCCOVERING, WebIFC.IFCFOOTING,
+                    WebIFC.IFCCURTAINWALL, WebIFC.IFCFLOWSEGMENT, WebIFC.IFCFLOWTERMINAL,
+                    WebIFC.IFCDISCRETEACCESSORY, WebIFC.IFCMECHANICALFASTENER
+                ];
+
+                const defaultMaterial = new THREE.MeshLambertMaterial({ color: 0x94A3B8, side: THREE.DoubleSide });
+                const woodMaterial = new THREE.MeshLambertMaterial({ color: 0xC4A574, side: THREE.DoubleSide });
+                const nsiMaterial = new THREE.MeshLambertMaterial({ color: 0x8B7355, side: THREE.DoubleSide });
+                const concreteMaterial = new THREE.MeshLambertMaterial({ color: 0x9CA3AF, side: THREE.DoubleSide });
+                const steelMaterial = new THREE.MeshLambertMaterial({ color: 0x6B7280, side: THREE.DoubleSide });
+                const glassMaterial = new THREE.MeshLambertMaterial({ color: 0x93C5FD, transparent: true, opacity: 0.4, side: THREE.DoubleSide });
+
+                const elementMaterialMap = new Map();
+                try {
+                    const matRels = this.ifcApi.GetLineIDsWithType(this.modelId, WebIFC.IFCRELASSOCIATESMATERIAL);
+                    for (let i = 0; i < matRels.size(); i++) {
+                        const relId = matRels.get(i);
+                        try {
+                            const rel = this.ifcApi.GetLine(this.modelId, relId);
+                            let materialName = null;
+                            
+                            if (rel.RelatingMaterial?.value) {
+                                const mat = this.ifcApi.GetLine(this.modelId, rel.RelatingMaterial.value);
+                                materialName = mat.Name?.value;
+                                
+                                if (!materialName && mat.ForLayerSet?.value) {
+                                    const layerSet = this.ifcApi.GetLine(this.modelId, mat.ForLayerSet.value);
+                                    if (layerSet.MaterialLayers) {
+                                        for (const layerRef of layerSet.MaterialLayers) {
+                                            const layer = this.ifcApi.GetLine(this.modelId, layerRef.value);
+                                            if (layer.Material?.value) {
+                                                const layerMat = this.ifcApi.GetLine(this.modelId, layer.Material.value);
+                                                if (layerMat.Name?.value) { materialName = layerMat.Name.value; break; }
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                if (!materialName && mat.MaterialConstituents) {
+                                    for (const constRef of mat.MaterialConstituents) {
+                                        const constituent = this.ifcApi.GetLine(this.modelId, constRef.value);
+                                        if (constituent.Material?.value) {
+                                            const constMat = this.ifcApi.GetLine(this.modelId, constituent.Material.value);
+                                            if (constMat.Name?.value) { materialName = constMat.Name.value; break; }
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            if (materialName && rel.RelatedObjects) {
+                                for (const objRef of rel.RelatedObjects) {
+                                    elementMaterialMap.set(objRef.value, materialName);
+                                }
+                            }
+                        } catch (e) {}
+                    }
+                } catch (e) {}
+
+                for (const ifcType of productTypes) {
+                    try {
+                        const ids = this.ifcApi.GetLineIDsWithType(this.modelId, ifcType);
+                        
+                        for (let i = 0; i < ids.size(); i++) {
+                            const expressId = ids.get(i);
+                            
+                            const materialName = elementMaterialMap.get(expressId) || '';
+                            const matLower = materialName.toLowerCase();
+                            this.elementMaterials.set(expressId, materialName);
+                            
+                            let baseMaterial;
+                            if (matLower.includes('holz') || matLower.includes('wood') || matLower.includes('hout') || 
+                                matLower.includes('timber') || matLower.includes('clt') || matLower.includes('glulam') ||
+                                matLower === 'isi') {
+                                baseMaterial = woodMaterial;
+                            } else if (matLower === 'nsi') {
+                                baseMaterial = nsiMaterial;
+                            } else if (matLower.includes('beton') || matLower.includes('concrete')) {
+                                baseMaterial = concreteMaterial;
+                            } else if (matLower.includes('stahl') || matLower.includes('steel') || matLower.includes('staal')) {
+                                baseMaterial = steelMaterial;
+                            } else if (matLower.includes('glas') || matLower.includes('glass')) {
+                                baseMaterial = glassMaterial;
+                            } else {
+                                baseMaterial = defaultMaterial;
+                            }
+                            
+                            try {
+                                const geometry = this.ifcApi.GetFlatMesh(this.modelId, expressId);
+                                const placedGeometries = geometry.geometries;
+                                
+                                const meshList = [];
+                                
+                                for (let j = 0; j < placedGeometries.size(); j++) {
+                                    const pg = placedGeometries.get(j);
+                                    const geomData = this.ifcApi.GetGeometry(this.modelId, pg.geometryExpressID);
+                                    
+                                    const verts = this.ifcApi.GetVertexArray(geomData.GetVertexData(), geomData.GetVertexDataSize());
+                                    const indices = this.ifcApi.GetIndexArray(geomData.GetIndexData(), geomData.GetIndexDataSize());
+                                    
+                                    if (indices.length === 0) continue;
+                                    
+                                    const positions = new Float32Array(verts.length / 2);
+                                    const normals = new Float32Array(verts.length / 2);
+                                    
+                                    for (let k = 0; k < verts.length; k += 6) {
+                                        const idx = k / 6 * 3;
+                                        positions[idx] = verts[k];
+                                        positions[idx + 1] = verts[k + 1];
+                                        positions[idx + 2] = verts[k + 2];
+                                        normals[idx] = verts[k + 3];
+                                        normals[idx + 1] = verts[k + 4];
+                                        normals[idx + 2] = verts[k + 5];
+                                    }
+                                    
+                                    const threeGeom = new THREE.BufferGeometry();
+                                    threeGeom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                                    threeGeom.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
+                                    threeGeom.setIndex(new THREE.BufferAttribute(indices, 1));
+                                    
+                                    const material = baseMaterial.clone();
+                                    const mesh = new THREE.Mesh(threeGeom, material);
+                                    
+                                    const matrix = new THREE.Matrix4();
+                                    matrix.fromArray(pg.flatTransformation);
+                                    mesh.applyMatrix4(matrix);
+                                    
+                                    mesh.userData.expressId = expressId;
+                                    mesh.userData.materialName = materialName;
+                                    
+                                    this.scene.add(mesh);
+                                    this.allMeshes.push(mesh);
+                                    meshList.push(mesh);
+                                }
+                                
+                                if (meshList.length > 0) {
+                                    this.meshes.set(expressId, meshList);
+                                }
+                                
+                            } catch (e) {}
+                        }
+                    } catch (e) {}
+                }
+            }
+
+            async extractProperties() {
+                this.elements = [];
+                this.elementProperties.clear();
+                this.allParameters.clear();
+
+                for (const [expressId, meshList] of this.meshes) {
+                    const props = this.getElementProperties(expressId);
+                    props.expressId = expressId;
+                    this.elements.push({ expressId, properties: props });
+                    this.elementProperties.set(expressId, props);
+                    this.extractParams(props, '', expressId);
+                }
+
+                const sorted = [...this.allParameters.entries()]
+                    .filter(([path, info]) => info.values.size > 1 && info.values.size < 100)
+                    .sort((a, b) => {
+                        const aName = a[0].toLowerCase();
+                        const bName = b[0].toLowerCase();
+                        if (aName.includes('mark') && !bName.includes('mark')) return -1;
+                        if (bName.includes('mark') && !aName.includes('mark')) return 1;
+                        return a[1].values.size - b[1].values.size;
+                    });
+
+                this.populateParameterSelect(sorted);
+            }
+
+            getElementProperties(expressId) {
+                const props = {};
+                
+                try {
+                    const line = this.ifcApi.GetLine(this.modelId, expressId);
+                    
+                    if (line.constructor?.name) props['IFC Type'] = line.constructor.name.replace('IFC', '');
+                    if (line.Name?.value) props.Name = line.Name.value;
+                    if (line.Tag?.value) {
+                        const tag = String(line.Tag.value);
+                        if (!tag.match(/^\d{6,}$/) && !tag.match(/^[0-9a-f-]{20,}$/i)) props['Tag'] = tag;
+                    }
+                    
+                    try {
+                        const matRels = this.ifcApi.GetLineIDsWithType(this.modelId, WebIFC.IFCRELASSOCIATESMATERIAL);
+                        for (let i = 0; i < matRels.size(); i++) {
+                            const relId = matRels.get(i);
+                            const rel = this.ifcApi.GetLine(this.modelId, relId);
+                            
+                            if (rel.RelatedObjects?.some(obj => obj.value === expressId)) {
+                                if (rel.RelatingMaterial?.value) {
+                                    const mat = this.ifcApi.GetLine(this.modelId, rel.RelatingMaterial.value);
+                                    if (mat.Name?.value) props.Material = mat.Name.value;
+                                    if (mat.ForLayerSet?.value) {
+                                        const layerSet = this.ifcApi.GetLine(this.modelId, mat.ForLayerSet.value);
+                                        if (layerSet.MaterialLayers) {
+                                            for (const layerRef of layerSet.MaterialLayers) {
+                                                const layer = this.ifcApi.GetLine(this.modelId, layerRef.value);
+                                                if (layer.Material?.value) {
+                                                    const layerMat = this.ifcApi.GetLine(this.modelId, layer.Material.value);
+                                                    if (layerMat.Name?.value) { props.Material = layerMat.Name.value; break; }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if (mat.MaterialConstituents) {
+                                        for (const constRef of mat.MaterialConstituents) {
+                                            const constituent = this.ifcApi.GetLine(this.modelId, constRef.value);
+                                            if (constituent.Material?.value) {
+                                                const constMat = this.ifcApi.GetLine(this.modelId, constituent.Material.value);
+                                                if (constMat.Name?.value) { props.Material = constMat.Name.value; break; }
+                                            }
+                                        }
+                                    }
+                                }
+                                break;
+                            }
+                        }
+                    } catch (e) {}
+                    
+                    try {
+                        const typeRels = this.ifcApi.GetLineIDsWithType(this.modelId, WebIFC.IFCRELDEFINESBYTYPE);
+                        for (let i = 0; i < typeRels.size(); i++) {
+                            const relId = typeRels.get(i);
+                            const rel = this.ifcApi.GetLine(this.modelId, relId);
+                            
+                            if (rel.RelatedObjects?.some(obj => obj.value === expressId)) {
+                                if (rel.RelatingType?.value) {
+                                    const typeObj = this.ifcApi.GetLine(this.modelId, rel.RelatingType.value);
+                                    if (typeObj.Name?.value) props['Type Name'] = typeObj.Name.value;
+                                    if (typeObj.ElementType?.value) props['Element Type'] = typeObj.ElementType.value;
+                                    if (typeObj.Tag?.value) props['Type Mark'] = typeObj.Tag.value;
+                                    break;
+                                }
+                            }
+                        }
+                    } catch (e) {}
+                    
+                    try {
+                        const propRels = this.ifcApi.GetLineIDsWithType(this.modelId, WebIFC.IFCRELDEFINESBYPROPERTIES);
+                        for (let i = 0; i < propRels.size(); i++) {
+                            const relId = propRels.get(i);
+                            try {
+                                const rel = this.ifcApi.GetLine(this.modelId, relId);
+                                if (!rel.RelatedObjects?.some(obj => obj.value === expressId)) continue;
+                                
+                                if (rel.RelatingPropertyDefinition?.value) {
+                                    const psetId = rel.RelatingPropertyDefinition.value;
+                                    const pset = this.ifcApi.GetLine(this.modelId, psetId);
+                                    const psetName = pset.Name?.value || 'Properties';
+                                    
+                                    if (pset.HasProperties) {
+                                        for (const propRef of pset.HasProperties) {
+                                            try {
+                                                const prop = this.ifcApi.GetLine(this.modelId, propRef.value);
+                                                const propName = prop.Name?.value;
+                                                let propValue = null;
+                                                if (prop.NominalValue?.value !== undefined) propValue = prop.NominalValue.value;
+                                                
+                                                if (propName && propValue !== null && propValue !== undefined) {
+                                                    props[`${psetName} → ${propName}`] = propValue;
+                                                    const propNameLower = propName.toLowerCase();
+                                                    if (propNameLower === 'mark' || propNameLower === 'marke' || propNameLower === 'markierung') props['Mark'] = propValue;
+                                                    if (propNameLower.includes('original') && propNameLower.includes('type')) props['Original Type'] = propValue;
+                                                }
+                                            } catch (e) {}
+                                        }
+                                    }
+                                    
+                                    if (pset.Quantities) {
+                                        for (const qRef of pset.Quantities) {
+                                            try {
+                                                const q = this.ifcApi.GetLine(this.modelId, qRef.value);
+                                                const qName = q.Name?.value;
+                                                const qValue = q.LengthValue?.value || q.AreaValue?.value || q.VolumeValue?.value || q.CountValue?.value || q.WeightValue?.value;
+                                                if (qName && qValue !== undefined) props[`${psetName} → ${qName}`] = qValue;
+                                            } catch (e) {}
+                                        }
+                                    }
+                                }
+                            } catch (e) {}
+                        }
+                    } catch (e) {}
+                    
+                } catch (e) {}
+
+                return props;
+            }
+
+            extractParams(obj, prefix, expressId) {
+                for (const [key, value] of Object.entries(obj)) {
+                    if (value === null || value === undefined) continue;
+                    if (key.startsWith('_')) continue;
+                    
+                    const path = prefix ? `${prefix} → ${key}` : key;
+                    
+                    if (typeof value === 'object' && !Array.isArray(value)) {
+                        this.extractParams(value, path, expressId);
+                    } else {
+                        const str = String(value);
+                        if (!str || str === 'null' || str === 'undefined' || str.length > 200) continue;
+                        if (str.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) continue;
+                        if (str.match(/^[0-9a-f]{20,}$/i)) continue;
+                        
+                        if (!this.allParameters.has(path)) {
+                            this.allParameters.set(path, { values: new Set(), objectIds: new Map() });
+                        }
+                        const param = this.allParameters.get(path);
+                        param.values.add(str);
+                        if (!param.objectIds.has(str)) param.objectIds.set(str, []);
+                        param.objectIds.get(str).push(expressId);
+                    }
+                }
+            }
+
+            populateParameterSelect(sorted) {
+                const select = document.getElementById('paramSelect');
+                select.innerHTML = '<option value="">-- Selecteer parameter --</option>';
+
+                for (const [path, info] of sorted) {
+                    const opt = document.createElement('option');
+                    opt.value = path;
+                    opt.textContent = `${path} (${info.values.size} waarden)`;
+                    select.appendChild(opt);
+                }
+
+                select.disabled = false;
+
+                const markParam = sorted.find(([p]) => p.toLowerCase().includes('mark'));
+                if (markParam) {
+                    select.value = markParam[0];
+                    this.selectParameter(markParam[0]);
+                }
+            }
+
+            selectParameter(path) {
+                this.stopPlayback();
+                this.currentIndex = -1;
+                this.selectedValueIndices.clear();
+                this.isolatedExpressIds.clear();
+
+                const param = this.allParameters.get(path);
+                if (!param) {
+                    this.enableControls(false);
+                    return;
+                }
+
+                document.getElementById('uniqueValuesCount').textContent = param.values.size;
+                
+                let totalObjects = 0;
+                for (const ids of param.objectIds.values()) totalObjects += ids.length;
+                document.getElementById('objectsWithParamCount').textContent = totalObjects;
+
+                const paramName = path.split(' → ').pop();
+                document.getElementById('currentParamLabel').textContent = `Huidige ${paramName}`;
+                document.getElementById('valuesHeader').textContent = `${paramName} waarden`;
+
+                this.valueGroups = param.objectIds;
+                this.sortedValues = Array.from(param.values).sort((a, b) => {
+                    const na = parseFloat(a), nb = parseFloat(b);
+                    return (!isNaN(na) && !isNaN(nb)) ? na - nb : String(a).localeCompare(String(b), undefined, { numeric: true });
+                });
+
+                this.renderValuesList();
+                this.updateProgress();
+                this.enableControls(true);
+                this.updateResetButtonState();
+                this.updateVisibility();
+            }
+
+            renderValuesList() {
+                const container = document.getElementById('valuesList');
+                document.getElementById('valuesCount').textContent = this.sortedValues.length;
+
+                if (!this.sortedValues.length) {
+                    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><p>Geen waarden gevonden</p></div>';
+                    return;
+                }
+
+                container.innerHTML = this.sortedValues.map((val, i) => {
+                    const count = this.valueGroups.get(val)?.length || 0;
+                    const isSelected = this.selectedValueIndices.has(i);
+                    return `<div class="value-item${isSelected ? ' selected' : ''}" data-index="${i}">
+                        <div class="value-icon">${i + 1}</div>
+                        <div class="value-info">
+                            <div class="value-name" title="${val}">${val}</div>
+                            <div class="value-meta">${count} element${count !== 1 ? 'en' : ''}</div>
+                        </div>
+                        <div class="value-status"></div>
+                    </div>`;
+                }).join('');
+
+                container.querySelectorAll('.value-item').forEach(el => {
+                    el.addEventListener('click', (e) => {
+                        this.handleValueListClick(parseInt(el.dataset.index), e);
+                    });
+                });
+            }
+
+            updateValuesList() {
+                const container = document.getElementById('valuesList');
+                container.querySelectorAll('.value-item').forEach((el, i) => {
+                    const isSelected = this.selectedValueIndices.has(i);
+                    el.classList.toggle('selected', isSelected);
+                });
+            }
+
+            updateProgress() {
+                const total = this.sortedValues.length;
+                const current = this.currentIndex + 1;
+
+                let visible = 0;
+                for (let i = 0; i <= this.currentIndex && i < total; i++) {
+                    visible += this.valueGroups.get(this.sortedValues[i])?.length || 0;
+                }
+
+                let totalObjects = 0;
+                for (const ids of this.valueGroups.values()) totalObjects += ids.length;
+
+                document.getElementById('progressFill').style.width = total ? `${(current / total) * 100}%` : '0%';
+                document.getElementById('visibleCount').textContent = visible;
+                document.getElementById('totalCount').textContent = totalObjects;
+
+                const val = this.currentIndex >= 0 ? this.sortedValues[this.currentIndex] : '-';
+                document.getElementById('currentValueDisplay').textContent = val;
+                document.getElementById('currentValueSubtitle').textContent = this.currentIndex >= 0
+                    ? `${this.valueGroups.get(val)?.length || 0} elementen`
+                    : 'Druk op play';
+            }
+
+            updateVisibility() {
+                const visibleColors = {
+                    wood: 0xD4A574, nsi: 0x9B8365, concrete: 0xADB5BD,
+                    steel: 0x7B8794, glass: 0xA3D5FD, default: 0x94A3B8
+                };
+                
+                const activeColors = {
+                    wood: 0xE8C088, nsi: 0xAB9375, concrete: 0xBDC5CD,
+                    steel: 0x8B98A4, glass: 0xB3E5FD, default: 0x10B981
+                };
+
+                const selectedColor = 0xFBBF24;
+
+                const hasIsolation = this.isolatedExpressIds.size > 0;
+                const hasSelection = this.selectedExpressIds.size > 0;
+                
+                // Collect all IDs in current parameter
+                const allParameterIds = new Set();
+                for (const ids of this.valueGroups.values()) {
+                    ids.forEach(id => allParameterIds.add(id));
+                }
+
+                // Collect visible IDs based on currentIndex (for player cumulative mode)
+                const playerVisibleIds = new Set();
+                for (let i = 0; i <= this.currentIndex && i < this.sortedValues.length; i++) {
+                    const ids = this.valueGroups.get(this.sortedValues[i]) || [];
+                    ids.forEach(id => playerVisibleIds.add(id));
+                }
+
+                for (const [expressId, meshList] of this.meshes) {
+                    const isHidden = this.hiddenExpressIds.has(expressId);
+                    const isSelected = this.selectedExpressIds.has(expressId);
+                    const isIsolated = hasIsolation && this.isolatedExpressIds.has(expressId);
+                    const isInParameter = allParameterIds.has(expressId);
+                    const isPlayerVisible = playerVisibleIds.has(expressId);
+
+                    for (const mesh of meshList) {
+                        if (isHidden) {
+                            mesh.visible = false;
+                            continue;
+                        }
+                        
+                        mesh.visible = true;
+                        const matName = (mesh.userData.materialName || '').toLowerCase();
+                        
+                        let matType = 'default';
+                        if (matName.includes('holz') || matName.includes('wood') || matName.includes('hout') || 
+                            matName.includes('timber') || matName.includes('clt') || matName === 'isi') {
+                            matType = 'wood';
+                        } else if (matName === 'nsi') {
+                            matType = 'nsi';
+                        } else if (matName.includes('beton') || matName.includes('concrete')) {
+                            matType = 'concrete';
+                        } else if (matName.includes('stahl') || matName.includes('steel')) {
+                            matType = 'steel';
+                        } else if (matName.includes('glas') || matName.includes('glass')) {
+                            matType = 'glass';
+                        }
+
+                        // Priority: Isolation > Selection > Player cumulative > Normal
+                        if (hasIsolation) {
+                            if (isIsolated) {
+                                mesh.material.color.setHex(isSelected ? selectedColor : activeColors[matType]);
+                                mesh.material.transparent = matType === 'glass';
+                                mesh.material.opacity = matType === 'glass' ? 0.6 : 1;
+                            } else {
+                                mesh.material.color.setHex(0x475569);
+                                mesh.material.transparent = true;
+                                mesh.material.opacity = 0.08;
+                            }
+                        } else if (isSelected) {
+                            mesh.material.color.setHex(selectedColor);
+                            mesh.material.transparent = false;
+                            mesh.material.opacity = 1;
+                        } else if (this.currentIndex >= 0) {
+                            // Player mode - cumulative visibility
+                            if (!isInParameter) {
+                                // Not in this parameter - ghost
+                                mesh.material.color.setHex(0x475569);
+                                mesh.material.transparent = true;
+                                mesh.material.opacity = 0.1;
+                            } else if (isPlayerVisible) {
+                                // Visible in player
+                                mesh.material.color.setHex(activeColors[matType]);
+                                mesh.material.transparent = matType === 'glass';
+                                mesh.material.opacity = matType === 'glass' ? 0.6 : 1;
+                            } else {
+                                // Not yet visible in player
+                                mesh.material.color.setHex(0x64748B);
+                                mesh.material.transparent = true;
+                                mesh.material.opacity = 0.15;
+                            }
+                        } else {
+                            // Normal state
+                            mesh.material.color.setHex(visibleColors[matType]);
+                            mesh.material.transparent = matType === 'glass';
+                            mesh.material.opacity = matType === 'glass' ? 0.4 : 1;
+                        }
+                    }
+                }
+            }
+
+            goToValue(index) {
+                // Clear list selection when using player
+                this.selectedValueIndices.clear();
+                this.isolatedExpressIds.clear();
+                this.updateValuesList();
+                this.updateResetButtonState();
+                
+                index = Math.max(-1, Math.min(index, this.sortedValues.length - 1));
+                this.currentIndex = index;
+                this.updateProgress();
+                this.updateVisibility();
+            }
+
+            goToFirst() { this.stopPlayback(); this.goToValue(-1); }
+            goToPrev() { this.stopPlayback(); this.goToValue(this.currentIndex - 1); }
+            goToNext() { this.goToValue(this.currentIndex + 1); }
+            goToLast() { this.stopPlayback(); this.goToValue(this.sortedValues.length - 1); }
+
+            togglePlay() {
+                this.isPlaying ? this.stopPlayback() : this.startPlayback();
+            }
+
+            startPlayback() {
+                if (!this.sortedValues.length) return;
+                if (this.currentIndex >= this.sortedValues.length - 1) this.currentIndex = -1;
+
+                // Clear isolation
+                this.selectedValueIndices.clear();
+                this.isolatedExpressIds.clear();
+                this.updateValuesList();
+                this.updateResetButtonState();
+
+                this.isPlaying = true;
+                document.getElementById('btnPlay').classList.add('playing');
+                document.getElementById('playIcon').innerHTML = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+
+                this.playInterval = setInterval(() => {
+                    if (this.currentIndex < this.sortedValues.length - 1) {
+                        this.goToNext();
+                    } else {
+                        this.stopPlayback();
+                    }
+                }, this.speed);
+
+                this.goToNext();
+            }
+
+            stopPlayback() {
+                this.isPlaying = false;
+                document.getElementById('btnPlay').classList.remove('playing');
+                document.getElementById('playIcon').innerHTML = '<path d="M8 5v14l11-7z"/>';
+                clearInterval(this.playInterval);
+                this.playInterval = null;
+            }
+
+            enableControls(enabled) {
+                ['btnFirst', 'btnPrev', 'btnPlay', 'btnNext', 'btnLast'].forEach(id => {
+                    document.getElementById(id).disabled = !enabled;
+                });
+            }
+
+            zoomFit() {
+                const box = new THREE.Box3();
+                let hasVisibleMesh = false;
+
+                for (const mesh of this.allMeshes) {
+                    if (mesh.visible && mesh.material.opacity > 0.2) {
+                        box.expandByObject(mesh);
+                        hasVisibleMesh = true;
+                    }
+                }
+
+                if (!hasVisibleMesh || box.isEmpty()) return;
+
+                const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3());
+                const maxDim = Math.max(size.x, size.y, size.z);
+
+                this.target.copy(center);
+                this.spherical.radius = maxDim * 1.5;
+                this.updateCamera();
+            }
+
+            resetView() {
+                this.target.set(0, 0, 0);
+                this.spherical = { theta: Math.PI / 4, phi: Math.PI / 4, radius: 50 };
+                this.updateCamera();
+            }
+
+            reset() {
+                if (this.modelId !== null) {
+                    this.ifcApi.CloseModel(this.modelId);
+                    this.modelId = null;
+                }
+
+                this.allMeshes.forEach(mesh => {
+                    this.scene.remove(mesh);
+                    mesh.geometry.dispose();
+                    mesh.material.dispose();
+                });
+                this.allMeshes = [];
+                this.meshes.clear();
+                this.elements = [];
+                this.elementProperties.clear();
+                this.allParameters.clear();
+                this.valueGroups.clear();
+                this.sortedValues = [];
+                this.currentIndex = -1;
+                this.selectedExpressIds.clear();
+                this.selectedValueIndices.clear();
+                this.isolatedExpressIds.clear();
+                this.hiddenExpressIds.clear();
+                this.hoveredMesh = null;
+                this.lastClickedIndex = null;
+
+                document.getElementById('dropZone').classList.remove('hidden');
+                document.getElementById('statusBar').style.display = 'none';
+                document.getElementById('viewerControls').style.display = 'none';
+                document.getElementById('btnClearFile').style.display = 'none';
+                document.getElementById('fileName').textContent = 'Geen bestand geladen';
+                document.getElementById('fileInfo').classList.remove('has-file');
+                document.getElementById('paramSelect').innerHTML = '<option value="">-- Laad eerst een IFC bestand --</option>';
+                document.getElementById('paramSelect').disabled = true;
+                document.getElementById('uniqueValuesCount').textContent = '-';
+                document.getElementById('objectsWithParamCount').textContent = '-';
+                document.getElementById('currentValueDisplay').textContent = '-';
+                document.getElementById('currentValueSubtitle').textContent = 'Laad een IFC bestand';
+                document.getElementById('valuesList').innerHTML = '<div class="empty-state"><div class="empty-state-icon">📁</div><p>Laad een IFC bestand om te beginnen</p></div>';
+                document.getElementById('valuesCount').textContent = '0';
+                document.getElementById('progressFill').style.width = '0%';
+                document.getElementById('visibleCount').textContent = '0';
+                document.getElementById('totalCount').textContent = '0';
+                document.getElementById('selectionInfo').classList.remove('visible');
+                document.getElementById('propertyPanel').classList.remove('open');
+
+                this.enableControls(false);
+                this.stopPlayback();
+                this.updateResetButtonState();
+            }
+
+            showLoading(text) {
+                document.getElementById('loadingText').textContent = text;
+                document.getElementById('loadingOverlay').classList.remove('hidden');
+            }
+
+            hideLoading() {
+                document.getElementById('loadingOverlay').classList.add('hidden');
+            }
+
+            showStatus(text, type = 'info') {
+                document.getElementById('statusText').textContent = text;
+                const dot = document.getElementById('statusDot');
+                dot.className = 'status-dot';
+                if (type === 'loading') dot.classList.add('loading');
+                if (type === 'error') dot.classList.add('error');
+            }
+        }
+
+        // Initialize
+        window.app = new IFCBouwvolgordeViewer();
+    </script>
+</body>
+</html>
