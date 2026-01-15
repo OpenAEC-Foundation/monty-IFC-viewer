@@ -1817,6 +1817,48 @@
                 });
             }
 
+            async loadFromUrl(url, fileName) {
+                document.getElementById('dropZone').classList.add('hidden');
+                this.showLoading('IFC bestand downloaden...');
+
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                    const buffer = await response.arrayBuffer();
+                    const data = new Uint8Array(buffer);
+
+                    this.showLoading('IFC structuur parsen...');
+
+                    this.modelId = this.ifcApi.OpenModel(data);
+                    console.log('Model loaded from URL, ID:', this.modelId);
+
+                    document.getElementById('fileName').textContent = fileName || url.split('/').pop();
+                    document.getElementById('fileInfo').classList.add('has-file');
+                    document.getElementById('btnClearFile').style.display = 'flex';
+
+                    this.showLoading('Geometrie genereren...');
+                    await this.extractGeometry();
+
+                    this.showLoading('Properties ophalen...');
+                    await this.extractProperties();
+
+                    this.hideLoading();
+                    this.showStatus(`${this.elements.length} elementen geladen`, 'success');
+
+                    document.getElementById('statusBar').style.display = 'flex';
+                    document.getElementById('viewerControls').style.display = 'flex';
+
+                    this.zoomFit();
+
+                } catch (error) {
+                    console.error('Error loading IFC from URL:', error);
+                    this.showStatus('Fout bij laden: ' + error.message, 'error');
+                    this.hideLoading();
+                    document.getElementById('dropZone').classList.remove('hidden');
+                }
+            }
+
             async handleFile(file) {
                 if (!file) return;
 
@@ -2565,6 +2607,21 @@
 
         // Initialize
         window.app = new IFCBouwvolgordeViewer();
+
+        // Check for URL parameter to auto-load model
+        const urlParams = new URLSearchParams(window.location.search);
+        const modelUrl = urlParams.get('model');
+        if (modelUrl) {
+            // Wait for IFC API to be ready, then load
+            const checkAndLoad = () => {
+                if (window.app.ifcApi) {
+                    window.app.loadFromUrl(modelUrl);
+                } else {
+                    setTimeout(checkAndLoad, 100);
+                }
+            };
+            checkAndLoad();
+        }
     </script>
 </body>
 </html>
