@@ -579,15 +579,42 @@ html.dark-theme #property-panel::-webkit-scrollbar-thumb {
   }
 
   #toolbar {
-    top: 12px;
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    transform: none;
     gap: 2px;
     padding: 4px 6px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  #toolbar::-webkit-scrollbar {
+    display: none;
   }
 
   .toolbar-btn {
-    width: 44px;
-    height: 44px;
-    font-size: 20px;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+  }
+
+  .toolbar-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .toolbar-btn.separator-after {
+    margin-right: 4px;
+  }
+
+  #model-toggle-btn {
+    top: 56px;
+  }
+
+  #model-panel {
+    top: 110px;
   }
 
   #bouwvolgorde-timeline {
