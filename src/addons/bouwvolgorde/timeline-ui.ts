@@ -46,7 +46,7 @@ export function createTimelineUI(manager: PhaseManager): HTMLElement {
 
   function updateLabel(): void {
     const phase = manager.currentPhase;
-    label.textContent = `Fase ${phase + 1} van ${manager.phaseCount} — Mark ${manager.currentPhaseName}`;
+    label.textContent = `Mark ${manager.currentPhaseName}`;
     slider.value = String(phase);
   }
 
@@ -129,9 +129,8 @@ export function createTimelineUI(manager: PhaseManager): HTMLElement {
   container.appendChild(slider);
   container.appendChild(controls);
 
-  // Initialize at phase 0
-  manager.setPhase(0);
-  updateLabel();
+  // Start inactive — no phase coloring until user interacts
+  label.textContent = `Bouwvolgorde — ${manager.phaseCount} fases`;
 
   return container;
 }

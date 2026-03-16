@@ -2,17 +2,38 @@ import type { IViewer } from "@speckle/viewer";
 import { SpeckleLoader } from "@speckle/viewer";
 import type { LoadedModel } from "../core/stream-loader";
 
+// Stacked layers icon — clear "models" metaphor
+const LAYERS_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>`;
+
 interface ModelState {
   model: LoadedModel;
   visible: boolean;
 }
 
+/**
+ * Creates the floating toggle button + dropdown model panel.
+ * Returns a container element with both inside.
+ */
 export function createModelPanel(
   viewer: IViewer,
   models: LoadedModel[]
 ): HTMLElement {
+  const wrapper = document.createElement("div");
+
+  // Floating toggle button (always visible, left side)
+  const toggleBtn = document.createElement("button");
+  toggleBtn.id = "model-toggle-btn";
+  toggleBtn.title = "Modellen aan/uit";
+  toggleBtn.innerHTML = LAYERS_ICON;
+
+  // Dropdown panel (hidden by default)
   const panel = document.createElement("div");
   panel.id = "model-panel";
+  panel.classList.add("hidden");
+
+  toggleBtn.addEventListener("click", () => {
+    panel.classList.toggle("hidden");
+  });
 
   // Header
   const header = document.createElement("div");
@@ -47,7 +68,6 @@ export function createModelPanel(
 
     const label = document.createElement("span");
     label.className = "mp-name";
-    // Clean up branch name: remove "main" prefix, show friendly name
     label.textContent = formatBranchName(state.model.name);
     label.title = state.model.name;
 
@@ -55,7 +75,6 @@ export function createModelPanel(
       checkbox.disabled = true;
       try {
         if (checkbox.checked) {
-          // Reload the model
           const loader = new SpeckleLoader(
             viewer.getWorldTree(),
             state.model.url,
@@ -64,7 +83,6 @@ export function createModelPanel(
           await viewer.loadObject(loader, false);
           state.visible = true;
         } else {
-          // Unload the model
           await viewer.unloadObject(state.model.url);
           state.visible = false;
         }
@@ -83,16 +101,13 @@ export function createModelPanel(
   panel.appendChild(header);
   panel.appendChild(body);
 
-  return panel;
-}
+  wrapper.appendChild(toggleBtn);
+  wrapper.appendChild(panel);
 
-export function toggleModelPanel(): void {
-  const panel = document.getElementById("model-panel");
-  panel?.classList.toggle("hidden");
+  return wrapper;
 }
 
 function formatBranchName(name: string): string {
-  // "main" → "Main", "structure" → "Structure", etc.
   return name
     .split("/")
     .pop()!

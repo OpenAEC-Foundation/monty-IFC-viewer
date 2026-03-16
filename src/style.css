@@ -458,7 +458,7 @@ body {
 /* Model Panel */
 #model-panel {
   position: absolute;
-  top: 70px;
+  top: 124px;
   left: 12px;
   width: 240px;
   background: var(--bg-toolbar);
@@ -542,6 +542,35 @@ html.dark-theme #property-panel::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.15);
 }
 
+/* Model toggle button (floating, left side) */
+#model-toggle-btn {
+  position: absolute;
+  top: 70px;
+  left: 12px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: var(--bg-toolbar);
+  backdrop-filter: blur(10px);
+  color: var(--text-primary);
+  cursor: pointer;
+  pointer-events: auto;
+  transition: background 0.15s;
+}
+
+#model-toggle-btn:hover {
+  background: var(--hover-bg);
+}
+
+#model-toggle-btn svg {
+  width: 22px;
+  height: 22px;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   #loading-indicator {
@@ -550,8 +579,7 @@ html.dark-theme #property-panel::-webkit-scrollbar-thumb {
   }
 
   #toolbar {
-    top: auto;
-    bottom: 12px;
+    top: 12px;
     gap: 2px;
     padding: 4px 6px;
   }
@@ -560,5 +588,12 @@ html.dark-theme #property-panel::-webkit-scrollbar-thumb {
     width: 44px;
     height: 44px;
     font-size: 20px;
+  }
+
+  #bouwvolgorde-timeline {
+    bottom: 12px;
+    min-width: unset;
+    width: calc(100% - 24px);
+    padding: 10px 14px;
   }
 }

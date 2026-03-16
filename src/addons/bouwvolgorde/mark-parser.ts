@@ -29,12 +29,17 @@ export async function parseMarks(
   const tree = viewer.getWorldTree();
   if (!tree) throw new Error("WorldTree not available");
 
-  // Collect all element nodes (nodes with a category = real BIM elements)
+  // Collect all node IDs from the tree, and RevitObjects separately for Mark scanning
   const elements: ElementInfo[] = [];
+  const allNodeIds = new Set<string>();
   tree.walk((node) => {
     const raw = node.model?.raw;
-    if (raw && raw.category && raw.speckle_type?.includes("RevitObject")) {
-      elements.push({ nodeId: raw.id, objectId: raw.id });
+    if (raw?.id) {
+      allNodeIds.add(raw.id);
+      // Only RevitObjects can have Mark properties
+      if (raw.category && raw.speckle_type?.includes("RevitObject")) {
+        elements.push({ nodeId: raw.id, objectId: raw.id });
+      }
     }
     return true;
   });
@@ -85,10 +90,18 @@ export async function parseMarks(
     return a.localeCompare(b, undefined, { numeric: true });
   });
 
+  // Add all non-marked node IDs to unmarkedIds (generic models, annotations, etc.)
+  const markedSet = new Set(allMarkedIds);
+  for (const id of allNodeIds) {
+    if (!markedSet.has(id) && !unmarkedIds.includes(id)) {
+      unmarkedIds.push(id);
+    }
+  }
+
   console.log(
     `Bouwvolgorde: ${phases.length} fases gevonden, ` +
     `${allMarkedIds.length} elementen met Mark, ` +
-    `${unmarkedIds.length} zonder Mark`
+    `${unmarkedIds.length} zonder Mark (incl. ${allNodeIds.size - elements.length} non-RevitObjects)`
   );
 
   return { phases, markToIds, allMarkedIds, unmarkedIds };
