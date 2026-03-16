@@ -1,0 +1,176 @@
+import { ViewerEvent, type SelectionEvent } from "@speckle/viewer";
+import type { ViewerInstance } from "../core/viewer-setup";
+import type { PhaseMapping } from "../addons/bouwvolgorde/mark-parser";
+
+const SELECTION_COLOR = "#4fc3f7"; // Light blue for selection highlight
+
+/** Selected element IDs (multi-select with Ctrl/Shift+click) */
+export const selectedIds = new Set<string>();
+
+/** Whether filters are currently active (isolate/hide) */
+let hasActiveFilters = false;
+
+let _mapping: PhaseMapping | null = null;
+
+export function setContextMenuMapping(mapping: PhaseMapping): void {
+  _mapping = mapping;
+}
+
+/**
+ * Context menu on right-click: Isoleer, Verberg, Reset.
+ * Supports multi-select (Ctrl/Shift+click) and Reset from anywhere.
+ */
+export function createContextMenu(instance: ViewerInstance): HTMLElement {
+  const menu = document.createElement("div");
+  menu.id = "context-menu";
+  menu.className = "context-menu hidden";
+
+  // Build menu buttons
+  const btnIsolate = document.createElement("button");
+  btnIsolate.textContent = "Isoleer";
+  const btnHide = document.createElement("button");
+  btnHide.textContent = "Verberg";
+  const divider = document.createElement("div");
+  divider.className = "context-menu-divider";
+  const btnReset = document.createElement("button");
+  btnReset.textContent = "Reset";
+
+  menu.appendChild(btnIsolate);
+  menu.appendChild(btnHide);
+  menu.appendChild(divider);
+  menu.appendChild(btnReset);
+
+  /** Expand a single ID to its mark group (Part + Generic Model) */
+  function expandToMarkGroup(id: string): string[] {
+    if (!_mapping) return [id];
+    const mark = _mapping.nodeIdToMark.get(id);
+    if (mark) {
+      return _mapping.markToIds.get(mark) || [id];
+    }
+    return [id];
+  }
+
+  /** Get all target IDs from multi-selection, expanded by mark groups */
+  function getTargetIds(): string[] {
+    const allIds = new Set<string>();
+    for (const id of selectedIds) {
+      for (const expandedId of expandToMarkGroup(id)) {
+        allIds.add(expandedId);
+      }
+    }
+    return Array.from(allIds);
+  }
+
+  // Track selected elements — Ctrl/Shift for multi-select
+  instance.viewer.on(ViewerEvent.ObjectClicked, (event: SelectionEvent | null) => {
+    if (!event || event.hits.length === 0) {
+      // Click on empty space: clear selection (unless Ctrl/Shift held)
+      if (!event) {
+        selectedIds.clear();
+      }
+      return;
+    }
+    const raw = event.hits[0].node.model.raw;
+    if (!raw?.id) return;
+
+    const e = event.event;
+    if (e && (e.ctrlKey || e.shiftKey || e.metaKey)) {
+      // Multi-select: toggle element
+      if (selectedIds.has(raw.id)) {
+        selectedIds.delete(raw.id);
+      } else {
+        selectedIds.add(raw.id);
+      }
+    } else {
+      // Single select: replace selection
+      selectedIds.clear();
+      selectedIds.add(raw.id);
+    }
+    console.log("Selection:", selectedIds.size, "elements");
+
+    // Highlight all selected elements (expanded by mark groups)
+    updateSelectionHighlight(instance);
+  });
+
+  /** Apply highlight color to all selected elements + their mark groups */
+  function updateSelectionHighlight(inst: ViewerInstance): void {
+    if (selectedIds.size === 0) {
+      inst.filtering.removeUserObjectColors();
+      return;
+    }
+    const ids = getTargetIds();
+    inst.filtering.setUserObjectColors([
+      { objectIds: ids, color: SELECTION_COLOR },
+    ]);
+  }
+
+  // Right-click: show context menu
+  const container = document.getElementById("viewer-container")!;
+  container.addEventListener("contextmenu", (e: MouseEvent) => {
+    e.preventDefault();
+
+    // Always show menu — with or without selection (for Reset)
+    menu.style.left = `${e.clientX}px`;
+    menu.style.top = `${e.clientY}px`;
+
+    // Show/hide action buttons based on selection
+    const hasSelection = selectedIds.size > 0;
+    btnIsolate.style.display = hasSelection ? "" : "none";
+    btnHide.style.display = hasSelection ? "" : "none";
+    divider.style.display = (hasSelection && hasActiveFilters) ? "" : "none";
+    btnReset.style.display = hasActiveFilters ? "" : "none";
+
+    // Only show menu if there's something to do
+    if (hasSelection || hasActiveFilters) {
+      menu.classList.remove("hidden");
+    }
+  });
+
+  // Close menu on any click outside the menu
+  document.addEventListener("mousedown", (e: MouseEvent) => {
+    if (!menu.contains(e.target as Node)) {
+      menu.classList.add("hidden");
+    }
+  });
+
+  // --- Actions ---
+
+  btnIsolate.addEventListener("click", (e: MouseEvent) => {
+    e.stopPropagation();
+    menu.classList.add("hidden");
+    const ids = getTargetIds();
+    if (ids.length === 0) return;
+    console.log("Context menu: isolate", ids.length, "elements");
+    instance.filtering.removeUserObjectColors();
+    instance.filtering.isolateObjects(ids, undefined, true, true);
+    selectedIds.clear();
+    instance.viewer.requestRender();
+    hasActiveFilters = true;
+  });
+
+  btnHide.addEventListener("click", (e: MouseEvent) => {
+    e.stopPropagation();
+    menu.classList.add("hidden");
+    const ids = getTargetIds();
+    if (ids.length === 0) return;
+    console.log("Context menu: hide", ids.length, "elements");
+    instance.filtering.removeUserObjectColors();
+    instance.filtering.hideObjects(ids, undefined, true, true);
+    selectedIds.clear();
+    instance.viewer.requestRender();
+    hasActiveFilters = true;
+  });
+
+  btnReset.addEventListener("click", (e: MouseEvent) => {
+    e.stopPropagation();
+    menu.classList.add("hidden");
+    console.log("Context menu: reset");
+    instance.filtering.removeUserObjectColors();
+    instance.filtering.resetFilters();
+    selectedIds.clear();
+    instance.viewer.requestRender();
+    hasActiveFilters = false;
+  });
+
+  return menu;
+}

@@ -1,8 +1,9 @@
 import { initViewer, type ViewerInstance } from "./core/viewer-setup";
 import { parseStreamParams, loadStream } from "./core/stream-loader";
 import { createToolbar } from "./ui/toolbar";
-import { createPropertyPanel } from "./ui/property-panel";
+import { createPropertyPanel, setPropertyPanelMapping } from "./ui/property-panel";
 import { createModelPanel } from "./ui/model-panel";
+import { createContextMenu, setContextMenuMapping } from "./ui/context-menu";
 import { parseMarks, PhaseManager, createTimelineUI } from "./addons/bouwvolgorde";
 import "./style.css";
 
@@ -39,6 +40,8 @@ async function main(): Promise<void> {
   overlay?.appendChild(toolbar);
   const propertyPanel = createPropertyPanel(instance);
   overlay?.appendChild(propertyPanel);
+  const contextMenu = createContextMenu(instance);
+  overlay?.appendChild(contextMenu);
 
   // Load model(s)
   try {
@@ -89,6 +92,10 @@ async function initBouwvolgorde(
       console.log("Bouwvolgorde: no Mark properties found, skipping player");
       return;
     }
+
+    // Share mapping with property panel and context menu for linked selection
+    setPropertyPanelMapping(mapping);
+    setContextMenuMapping(mapping);
 
     const manager = new PhaseManager(instance, mapping);
     const timeline = createTimelineUI(manager);

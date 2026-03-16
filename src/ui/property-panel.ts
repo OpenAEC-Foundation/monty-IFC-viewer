@@ -1,6 +1,15 @@
 import { ViewerEvent, type SelectionEvent } from "@speckle/viewer";
 import type { ViewerInstance } from "../core/viewer-setup";
 import { SPECKLE_SERVER } from "../core/viewer-setup";
+import type { PhaseMapping } from "../addons/bouwvolgorde/mark-parser";
+import { selectedIds } from "./context-menu";
+
+let _phaseMapping: PhaseMapping | null = null;
+
+/** Set the phase mapping so property panel can highlight linked elements */
+export function setPropertyPanelMapping(mapping: PhaseMapping): void {
+  _phaseMapping = mapping;
+}
 
 export function createPropertyPanel(instance: ViewerInstance): HTMLElement {
   const panel = document.createElement("div");
@@ -27,7 +36,6 @@ export function createPropertyPanel(instance: ViewerInstance): HTMLElement {
   body.className = "pp-body";
   panel.appendChild(body);
 
-  // Get projectId from URL for API calls
   const projectId = new URLSearchParams(window.location.search).get("project") || "";
 
   instance.viewer.on(ViewerEvent.ObjectClicked, (event: SelectionEvent | null) => {
@@ -44,51 +52,176 @@ export function createPropertyPanel(instance: ViewerInstance): HTMLElement {
       return;
     }
 
-    // Show panel with basic info immediately
-    body.innerHTML = "";
-
-    const name = raw.name || raw.Name || "Element";
-    const category = raw.category || raw.Category || "";
-
-    const elHeader = document.createElement("div");
-    elHeader.className = "pp-element-header";
-    elHeader.innerHTML = `<span class="pp-element-name">${esc(String(name))}</span>`;
-    if (category) {
-      elHeader.innerHTML += `<span class="pp-element-category">${esc(String(category))}</span>`;
-    }
-    body.appendChild(elHeader);
-
-    // Show basic properties immediately
-    const basicProps: Array<{ key: string; value: string }> = [];
-    if (raw.level) basicProps.push({ key: "Level", value: String(raw.level) });
-    if (raw.properties?.elementId) basicProps.push({ key: "Element ID", value: String(raw.properties.elementId) });
-
-    if (basicProps.length > 0) {
-      body.appendChild(createSection("properties", basicProps));
-    }
-
-    // Show loading indicator for parameters
-    const paramsContainer = document.createElement("div");
-    paramsContainer.className = "pp-section";
-    paramsContainer.innerHTML = `<div class="pp-section-header">Parameters</div><div class="pp-table"><div class="pp-row"><span class="pp-key pp-loading">Laden...</span></div></div>`;
-    body.appendChild(paramsContainer);
-
     panel.classList.remove("hidden");
 
-    // Fetch deep properties from Speckle API
-    fetchParameterGroups(projectId, raw.id).then((groups) => {
-      paramsContainer.innerHTML = "";
-      if (groups.length > 0) {
-        for (const group of groups) {
-          paramsContainer.appendChild(createSection(group.name, group.props));
-        }
+    // Defer to allow context-menu to update selectedIds first
+    queueMicrotask(() => {
+      if (selectedIds.size > 1) {
+        showMultiSelectPanel(body, projectId, Array.from(selectedIds));
       } else {
-        paramsContainer.remove();
+        showSingleSelectPanel(body, projectId, raw);
       }
     });
   });
 
   return panel;
+}
+
+/** Show properties for a single element */
+function showSingleSelectPanel(
+  body: HTMLElement,
+  projectId: string,
+  raw: Record<string, unknown>
+): void {
+  body.innerHTML = "";
+
+  const name = raw.name || raw.Name || "Element";
+  const category = raw.category || raw.Category || "";
+
+  const elHeader = document.createElement("div");
+  elHeader.className = "pp-element-header";
+  elHeader.innerHTML = `<span class="pp-element-name">${esc(String(name))}</span>`;
+  if (category) {
+    elHeader.innerHTML += `<span class="pp-element-category">${esc(String(category))}</span>`;
+  }
+  if (_phaseMapping) {
+    const mark = _phaseMapping.nodeIdToMark.get(raw.id as string);
+    if (mark) {
+      elHeader.innerHTML += `<span class="pp-element-mark">Mark ${esc(mark)}</span>`;
+    }
+  }
+  body.appendChild(elHeader);
+
+  const basicProps: Array<{ key: string; value: string }> = [];
+  if (raw.level) basicProps.push({ key: "Level", value: String(raw.level) });
+  if (raw.properties && (raw.properties as Record<string, unknown>).elementId)
+    basicProps.push({ key: "Element ID", value: String((raw.properties as Record<string, unknown>).elementId) });
+
+  if (basicProps.length > 0) {
+    body.appendChild(createSection("properties", basicProps));
+  }
+
+  const paramsContainer = document.createElement("div");
+  paramsContainer.className = "pp-section";
+  paramsContainer.innerHTML = `<div class="pp-section-header">Parameters</div><div class="pp-table"><div class="pp-row"><span class="pp-key pp-loading">Laden...</span></div></div>`;
+  body.appendChild(paramsContainer);
+
+  fetchParameterGroups(projectId, raw.id as string).then((groups) => {
+    paramsContainer.innerHTML = "";
+    if (groups.length > 0) {
+      for (const group of groups) {
+        paramsContainer.appendChild(createSection(group.name, group.props));
+      }
+    } else {
+      paramsContainer.remove();
+    }
+  });
+}
+
+/** Show merged properties for multiple elements, with VAR for differing values */
+function showMultiSelectPanel(
+  body: HTMLElement,
+  projectId: string,
+  objectIds: string[]
+): void {
+  body.innerHTML = "";
+
+  // Header
+  const mh = document.createElement("div");
+  mh.className = "pp-element-header";
+  mh.innerHTML = `<span class="pp-element-name">${objectIds.length} elementen geselecteerd</span>`;
+
+  // Show marks if available
+  if (_phaseMapping) {
+    const marks = new Set<string>();
+    for (const id of objectIds) {
+      const mark = _phaseMapping.nodeIdToMark.get(id);
+      if (mark) marks.add(mark);
+    }
+    if (marks.size === 1) {
+      mh.innerHTML += `<span class="pp-element-mark">Mark ${esc(Array.from(marks)[0])}</span>`;
+    } else if (marks.size > 1) {
+      mh.innerHTML += `<span class="pp-element-mark pp-var">Mark VAR</span>`;
+    }
+  }
+  body.appendChild(mh);
+
+  // Loading
+  const paramsContainer = document.createElement("div");
+  paramsContainer.className = "pp-section";
+  paramsContainer.innerHTML = `<div class="pp-section-header">Parameters</div><div class="pp-table"><div class="pp-row"><span class="pp-key pp-loading">Laden...</span></div></div>`;
+  body.appendChild(paramsContainer);
+
+  // Fetch all properties in parallel
+  Promise.all(objectIds.map((id) => fetchParameterGroups(projectId, id))).then(
+    (allGroups) => {
+      const merged = mergePropertyGroups(allGroups);
+      paramsContainer.innerHTML = "";
+      if (merged.length > 0) {
+        for (const group of merged) {
+          paramsContainer.appendChild(createSection(group.name, group.props));
+        }
+      } else {
+        paramsContainer.remove();
+      }
+    }
+  );
+}
+
+/**
+ * Merge property groups from multiple elements.
+ * Same value → show value. Different values → "VAR".
+ */
+function mergePropertyGroups(
+  allGroups: PropertyGroup[][]
+): PropertyGroup[] {
+  // Build a map: groupName → paramKey → Set of values
+  const groupMap = new Map<string, Map<string, Set<string>>>();
+
+  for (const groups of allGroups) {
+    for (const group of groups) {
+      let paramMap = groupMap.get(group.name);
+      if (!paramMap) {
+        paramMap = new Map();
+        groupMap.set(group.name, paramMap);
+      }
+      for (const prop of group.props) {
+        let values = paramMap.get(prop.key);
+        if (!values) {
+          values = new Set();
+          paramMap.set(prop.key, values);
+        }
+        values.add(prop.value);
+      }
+    }
+  }
+
+  // Convert to PropertyGroup array with VAR for multi-value params
+  const result: PropertyGroup[] = [];
+  for (const [groupName, paramMap] of groupMap) {
+    const props: Array<{ key: string; value: string }> = [];
+    for (const [key, values] of paramMap) {
+      props.push({
+        key,
+        value: values.size === 1 ? Array.from(values)[0] : "VAR",
+      });
+    }
+    if (props.length > 0) {
+      result.push({ name: groupName, props });
+    }
+  }
+
+  // Sort: priority groups first, then alphabetical
+  result.sort((a, b) => {
+    const ai = PRIORITY_GROUPS.indexOf(a.name);
+    const bi = PRIORITY_GROUPS.indexOf(b.name);
+    if (ai !== -1 && bi !== -1) return ai - bi;
+    if (ai !== -1) return -1;
+    if (bi !== -1) return 1;
+    return a.name.localeCompare(b.name);
+  });
+
+  return result;
 }
 
 interface PropertyGroup {
@@ -128,7 +261,6 @@ async function fetchParameterGroups(
       }
     }
 
-    // Sort: priority groups first, then alphabetical
     groups.sort((a, b) => {
       const ai = PRIORITY_GROUPS.indexOf(a.name);
       const bi = PRIORITY_GROUPS.indexOf(b.name);
@@ -183,7 +315,8 @@ function createPropertyTable(
   for (const { key, value } of props) {
     const row = document.createElement("div");
     row.className = "pp-row";
-    row.innerHTML = `<span class="pp-key">${esc(key)}</span><span class="pp-value">${esc(value)}</span>`;
+    const isVar = value === "VAR";
+    row.innerHTML = `<span class="pp-key">${esc(key)}</span><span class="pp-value${isVar ? " pp-var" : ""}">${esc(value)}</span>`;
     table.appendChild(row);
   }
   return table;

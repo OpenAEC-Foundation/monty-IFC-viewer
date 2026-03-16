@@ -10,6 +10,8 @@ export interface PhaseMapping {
   allMarkedIds: string[];
   /** Element node IDs without a Mark */
   unmarkedIds: string[];
+  /** Reverse lookup: node ID → mark value (for selection linking) */
+  nodeIdToMark: Map<string, string>;
 }
 
 interface ElementInfo {
@@ -36,7 +38,7 @@ export async function parseMarks(
     const raw = node.model?.raw;
     if (raw?.id) {
       allNodeIds.add(raw.id);
-      // Only RevitObjects can have Mark properties
+      // RevitObjects can have Mark or CLT_T_Mark properties
       if (raw.category && raw.speckle_type?.includes("RevitObject")) {
         elements.push({ nodeId: raw.id, objectId: raw.id });
       }
@@ -48,6 +50,7 @@ export async function parseMarks(
 
   // Batch-fetch Mark values from Speckle API
   const markToIds = new Map<string, string[]>();
+  const nodeIdToMark = new Map<string, string>();
   const allMarkedIds: string[] = [];
   const unmarkedIds: string[] = [];
 
@@ -67,6 +70,7 @@ export async function parseMarks(
 
       if (mark !== null) {
         allMarkedIds.push(nodeId);
+        nodeIdToMark.set(nodeId, mark);
         const existing = markToIds.get(mark);
         if (existing) {
           existing.push(nodeId);
@@ -104,7 +108,7 @@ export async function parseMarks(
     `${unmarkedIds.length} zonder Mark (incl. ${allNodeIds.size - elements.length} non-RevitObjects)`
   );
 
-  return { phases, markToIds, allMarkedIds, unmarkedIds };
+  return { phases, markToIds, allMarkedIds, unmarkedIds, nodeIdToMark };
 }
 
 async function fetchMark(
@@ -117,15 +121,34 @@ async function fetchMark(
     if (!resp.ok) return null;
 
     const obj = await resp.json();
-    const identityData =
-      obj?.properties?.Parameters?.["Instance Parameters"]?.["Identity Data"];
-    if (!identityData) return null;
+    const instanceParams =
+      obj?.properties?.Parameters?.["Instance Parameters"];
+    if (!instanceParams) return null;
 
-    const markParam = identityData.Mark || identityData.mark;
-    if (!markParam) return null;
+    // Check Text → CLT_T_Mark first (Generic Models with CLT tags)
+    // Must be checked before Identity Data/Mark because CLT TAGs have Mark=0
+    const textGroup = instanceParams["Text"];
+    if (textGroup) {
+      const cltParam = textGroup["CLT_T_Mark"] || textGroup["clt_t_mark"];
+      if (cltParam) {
+        const value = cltParam.value ?? cltParam;
+        if (value !== null && value !== undefined && value !== "" && String(value) !== "0")
+          return String(value);
+      }
+    }
 
-    const value = markParam.value ?? markParam;
-    return value !== null && value !== undefined && value !== "" ? String(value) : null;
+    // Check Identity Data → Mark (Parts, structural elements)
+    const identityData = instanceParams["Identity Data"];
+    if (identityData) {
+      const markParam = identityData.Mark || identityData.mark;
+      if (markParam) {
+        const value = markParam.value ?? markParam;
+        if (value !== null && value !== undefined && value !== "" && String(value) !== "0")
+          return String(value);
+      }
+    }
+
+    return null;
   } catch {
     return null;
   }

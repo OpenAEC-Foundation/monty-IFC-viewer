@@ -282,6 +282,29 @@ body {
   margin-top: 2px;
 }
 
+.pp-element-mark {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-teal);
+  background: var(--hover-bg);
+  padding: 1px 8px;
+  border-radius: 10px;
+  margin-top: 4px;
+}
+
+.pp-section-divider {
+  height: 1px;
+  background: var(--separator-color);
+  margin: 8px 0;
+}
+
+.pp-var {
+  color: var(--accent-teal) !important;
+  font-style: italic;
+  opacity: 0.8;
+}
+
 .pp-section {
   margin-top: 4px;
 }
@@ -352,6 +375,47 @@ body {
 #property-panel::-webkit-scrollbar-thumb {
   background: var(--slider-track);
   border-radius: 2px;
+}
+
+/* Context Menu (right-click) */
+.context-menu {
+  position: fixed;
+  z-index: 1000;
+  pointer-events: auto;
+  background: var(--bg-toolbar);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 4px 0;
+  min-width: 140px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.context-menu.hidden {
+  display: none;
+}
+
+.context-menu button {
+  display: block;
+  width: 100%;
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: "Segoe UI", sans-serif;
+  text-align: left;
+  cursor: pointer;
+}
+
+.context-menu button:hover {
+  background: var(--hover-bg);
+}
+
+.context-menu-divider {
+  height: 1px;
+  margin: 4px 8px;
+  background: var(--separator-color);
 }
 
 /* Bouwvolgorde Timeline */
