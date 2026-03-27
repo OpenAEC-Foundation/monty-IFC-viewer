@@ -12,6 +12,10 @@ export interface PhaseMapping {
   unmarkedIds: string[];
   /** Reverse lookup: node ID → mark value (for selection linking) */
   nodeIdToMark: Map<string, string>;
+  /** Map from Original Type value to array of node IDs */
+  typeToIds: Map<string, string[]>;
+  /** Reverse lookup: node ID → Original Type */
+  nodeIdToType: Map<string, string>;
 }
 
 interface ElementInfo {
@@ -48,9 +52,11 @@ export async function parseMarks(
 
   console.log(`Bouwvolgorde: found ${elements.length} elements to scan`);
 
-  // Batch-fetch Mark values from Speckle API
+  // Batch-fetch Mark + Type values from Speckle API
   const markToIds = new Map<string, string[]>();
   const nodeIdToMark = new Map<string, string>();
+  const typeToIds = new Map<string, string[]>();
+  const nodeIdToType = new Map<string, string>();
   const allMarkedIds: string[] = [];
   const unmarkedIds: string[] = [];
 
@@ -61,11 +67,11 @@ export async function parseMarks(
   for (let i = 0; i < elements.length; i += BATCH_SIZE) {
     const batch = elements.slice(i, i + BATCH_SIZE);
     const results = await Promise.all(
-      batch.map((el) => fetchMark(projectId, el.objectId))
+      batch.map((el) => fetchMarkAndType(projectId, el.objectId))
     );
 
     for (let j = 0; j < batch.length; j++) {
-      const mark = results[j];
+      const { mark, originalType } = results[j];
       const nodeId = batch[j].nodeId;
 
       if (mark !== null) {
@@ -79,6 +85,16 @@ export async function parseMarks(
         }
       } else {
         unmarkedIds.push(nodeId);
+      }
+
+      if (originalType !== null) {
+        nodeIdToType.set(nodeId, originalType);
+        const existing = typeToIds.get(originalType);
+        if (existing) {
+          existing.push(nodeId);
+        } else {
+          typeToIds.set(originalType, [nodeId]);
+        }
       }
     }
 
@@ -105,25 +121,34 @@ export async function parseMarks(
   console.log(
     `Bouwvolgorde: ${phases.length} fases gevonden, ` +
     `${allMarkedIds.length} elementen met Mark, ` +
-    `${unmarkedIds.length} zonder Mark (incl. ${allNodeIds.size - elements.length} non-RevitObjects)`
+    `${unmarkedIds.length} zonder Mark (incl. ${allNodeIds.size - elements.length} non-RevitObjects), ` +
+    `${typeToIds.size} unieke types`
   );
 
-  return { phases, markToIds, allMarkedIds, unmarkedIds, nodeIdToMark };
+  return { phases, markToIds, allMarkedIds, unmarkedIds, nodeIdToMark, typeToIds, nodeIdToType };
 }
 
-async function fetchMark(
+interface FetchResult {
+  mark: string | null;
+  originalType: string | null;
+}
+
+async function fetchMarkAndType(
   projectId: string,
   objectId: string
-): Promise<string | null> {
+): Promise<FetchResult> {
   try {
     const url = `${SPECKLE_SERVER}/objects/${projectId}/${objectId}/single`;
     const resp = await fetch(url);
-    if (!resp.ok) return null;
+    if (!resp.ok) return { mark: null, originalType: null };
 
     const obj = await resp.json();
     const instanceParams =
       obj?.properties?.Parameters?.["Instance Parameters"];
-    if (!instanceParams) return null;
+    if (!instanceParams) return { mark: null, originalType: null };
+
+    // --- Mark ---
+    let mark: string | null = null;
 
     // Check Text → CLT_T_Mark first (Generic Models with CLT tags)
     // Must be checked before Identity Data/Mark because CLT TAGs have Mark=0
@@ -133,23 +158,34 @@ async function fetchMark(
       if (cltParam) {
         const value = cltParam.value ?? cltParam;
         if (value !== null && value !== undefined && value !== "" && String(value) !== "0")
-          return String(value);
+          mark = String(value);
       }
     }
 
     // Check Identity Data → Mark (Parts, structural elements)
     const identityData = instanceParams["Identity Data"];
-    if (identityData) {
+    if (!mark && identityData) {
       const markParam = identityData.Mark || identityData.mark;
       if (markParam) {
         const value = markParam.value ?? markParam;
         if (value !== null && value !== undefined && value !== "" && String(value) !== "0")
-          return String(value);
+          mark = String(value);
       }
     }
 
-    return null;
+    // --- Original Type ---
+    let originalType: string | null = null;
+    if (identityData) {
+      const typeParam = identityData["Original Type"] || identityData["original type"] || identityData["Type Name"] || identityData["type name"];
+      if (typeParam) {
+        const value = typeParam.value ?? typeParam;
+        if (value !== null && value !== undefined && value !== "")
+          originalType = String(value);
+      }
+    }
+
+    return { mark, originalType };
   } catch {
-    return null;
+    return { mark: null, originalType: null };
   }
 }

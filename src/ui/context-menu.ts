@@ -8,12 +8,68 @@ const SELECTION_COLOR = "#4fc3f7"; // Light blue for selection highlight
 export const selectedIds = new Set<string>();
 
 /** Whether filters are currently active (isolate/hide) */
-let hasActiveFilters = false;
+export let hasActiveFilters = false;
 
 let _mapping: PhaseMapping | null = null;
+let _instance: ViewerInstance | null = null;
 
 export function setContextMenuMapping(mapping: PhaseMapping): void {
   _mapping = mapping;
+}
+
+/** Expand a single ID to its mark group (Part + Generic Model) */
+function expandToMarkGroup(id: string): string[] {
+  if (!_mapping) return [id];
+  const mark = _mapping.nodeIdToMark.get(id);
+  if (mark) {
+    return _mapping.markToIds.get(mark) || [id];
+  }
+  return [id];
+}
+
+/** Get all target IDs from multi-selection, expanded by mark groups */
+export function getTargetIds(): string[] {
+  const allIds = new Set<string>();
+  for (const id of selectedIds) {
+    for (const expandedId of expandToMarkGroup(id)) {
+      allIds.add(expandedId);
+    }
+  }
+  return Array.from(allIds);
+}
+
+/** Isolate selected elements (ghost everything else) */
+export function isolateSelected(): void {
+  if (!_instance) return;
+  const ids = getTargetIds();
+  if (ids.length === 0) return;
+  _instance.filtering.removeUserObjectColors();
+  _instance.filtering.isolateObjects(ids, undefined, true, true);
+  selectedIds.clear();
+  _instance.viewer.requestRender();
+  hasActiveFilters = true;
+}
+
+/** Hide selected elements */
+export function hideSelected(): void {
+  if (!_instance) return;
+  const ids = getTargetIds();
+  if (ids.length === 0) return;
+  _instance.filtering.removeUserObjectColors();
+  _instance.filtering.hideObjects(ids, undefined, true, true);
+  selectedIds.clear();
+  _instance.viewer.requestRender();
+  hasActiveFilters = true;
+}
+
+/** Reset all filters */
+export function resetFilters(): void {
+  if (!_instance) return;
+  _instance.filtering.removeUserObjectColors();
+  _instance.filtering.resetFilters();
+  selectedIds.clear();
+  _instance.viewer.requestRender();
+  hasActiveFilters = false;
 }
 
 /**
@@ -40,26 +96,7 @@ export function createContextMenu(instance: ViewerInstance): HTMLElement {
   menu.appendChild(divider);
   menu.appendChild(btnReset);
 
-  /** Expand a single ID to its mark group (Part + Generic Model) */
-  function expandToMarkGroup(id: string): string[] {
-    if (!_mapping) return [id];
-    const mark = _mapping.nodeIdToMark.get(id);
-    if (mark) {
-      return _mapping.markToIds.get(mark) || [id];
-    }
-    return [id];
-  }
-
-  /** Get all target IDs from multi-selection, expanded by mark groups */
-  function getTargetIds(): string[] {
-    const allIds = new Set<string>();
-    for (const id of selectedIds) {
-      for (const expandedId of expandToMarkGroup(id)) {
-        allIds.add(expandedId);
-      }
-    }
-    return Array.from(allIds);
-  }
+  _instance = instance;
 
   // Track selected elements — Ctrl/Shift for multi-select
   instance.viewer.on(ViewerEvent.ObjectClicked, (event: SelectionEvent | null) => {
@@ -74,6 +111,10 @@ export function createContextMenu(instance: ViewerInstance): HTMLElement {
     if (!raw?.id) return;
 
     const e = event.event;
+
+    // Ignore right-clicks — don't change selection on context menu
+    if (e && e.button === 2) return;
+
     if (e && (e.ctrlKey || e.shiftKey || e.metaKey)) {
       // Multi-select: toggle element
       if (selectedIds.has(raw.id)) {
@@ -139,43 +180,24 @@ export function createContextMenu(instance: ViewerInstance): HTMLElement {
     if (e.key === "Escape") closeMenu();
   });
 
-  // --- Actions ---
+  // --- Actions (delegate to exported functions) ---
 
   btnIsolate.addEventListener("click", (e: MouseEvent) => {
     e.stopPropagation();
     menu.classList.add("hidden");
-    const ids = getTargetIds();
-    if (ids.length === 0) return;
-    console.log("Context menu: isolate", ids.length, "elements");
-    instance.filtering.removeUserObjectColors();
-    instance.filtering.isolateObjects(ids, undefined, true, true);
-    selectedIds.clear();
-    instance.viewer.requestRender();
-    hasActiveFilters = true;
+    isolateSelected();
   });
 
   btnHide.addEventListener("click", (e: MouseEvent) => {
     e.stopPropagation();
     menu.classList.add("hidden");
-    const ids = getTargetIds();
-    if (ids.length === 0) return;
-    console.log("Context menu: hide", ids.length, "elements");
-    instance.filtering.removeUserObjectColors();
-    instance.filtering.hideObjects(ids, undefined, true, true);
-    selectedIds.clear();
-    instance.viewer.requestRender();
-    hasActiveFilters = true;
+    hideSelected();
   });
 
   btnReset.addEventListener("click", (e: MouseEvent) => {
     e.stopPropagation();
     menu.classList.add("hidden");
-    console.log("Context menu: reset");
-    instance.filtering.removeUserObjectColors();
-    instance.filtering.resetFilters();
-    selectedIds.clear();
-    instance.viewer.requestRender();
-    hasActiveFilters = false;
+    resetFilters();
   });
 
   return menu;

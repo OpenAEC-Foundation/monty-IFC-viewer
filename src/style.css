@@ -259,6 +259,36 @@ body {
   color: var(--text-primary);
 }
 
+/* Property Panel Action Buttons */
+.pp-actions {
+  display: flex;
+  gap: 6px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--header-border);
+}
+
+.pp-action-btn {
+  flex: 1;
+  padding: 5px 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-family: "Segoe UI", sans-serif;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.pp-action-btn:hover {
+  background: var(--hover-bg);
+  border-color: var(--accent-teal);
+}
+
+.pp-action-reset {
+  color: var(--text-secondary);
+}
+
 .pp-body {
   padding: 8px 0;
 }
@@ -601,6 +631,180 @@ body {
   text-overflow: ellipsis;
 }
 
+/* Filter Panel */
+#filter-toggle-btn {
+  position: absolute;
+  top: 124px;
+  left: 12px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: var(--bg-toolbar);
+  backdrop-filter: blur(10px);
+  color: var(--text-primary);
+  cursor: pointer;
+  pointer-events: auto;
+  transition: background 0.15s;
+}
+
+#filter-toggle-btn:hover {
+  background: var(--hover-bg);
+}
+
+#filter-toggle-btn svg {
+  width: 22px;
+  height: 22px;
+}
+
+#filter-panel {
+  position: absolute;
+  top: 178px;
+  left: 12px;
+  width: 260px;
+  max-height: calc(100vh - 200px);
+  background: var(--bg-toolbar);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  backdrop-filter: blur(10px);
+  pointer-events: auto;
+  overflow-y: auto;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+#filter-panel.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-20px);
+}
+
+.fp-body {
+  padding: 8px 14px;
+}
+
+.fp-section {
+  margin-bottom: 12px;
+}
+
+.fp-section-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-teal);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 6px;
+}
+
+.fp-mark-row {
+  display: flex;
+  gap: 6px;
+}
+
+.fp-mark-input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: "Segoe UI", sans-serif;
+  outline: none;
+}
+
+.fp-mark-input:focus {
+  border-color: var(--accent-teal);
+}
+
+.fp-mark-input.fp-no-match {
+  border-color: #e74c3c;
+  animation: shake 0.3s;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+.fp-apply-btn {
+  padding: 6px 12px;
+  border: 1px solid var(--accent-teal);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--accent-teal);
+  font-size: 12px;
+  font-family: "Segoe UI", sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.fp-apply-btn:hover {
+  background: var(--hover-bg);
+}
+
+.fp-type-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.fp-type-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  cursor: pointer;
+  border-bottom: 1px solid var(--row-border);
+}
+
+.fp-type-item:last-child {
+  border-bottom: none;
+}
+
+.fp-type-cb {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent-teal);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.fp-type-name {
+  font-size: 12px;
+  color: var(--text-primary);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fp-type-count {
+  font-size: 11px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.fp-reset-btn {
+  width: 100%;
+  padding: 6px 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-family: "Segoe UI", sans-serif;
+  cursor: pointer;
+  margin-top: 4px;
+}
+
+.fp-reset-btn:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
 /* Dark theme scrollbar */
 html.dark-theme #property-panel::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.15);
@@ -679,6 +883,14 @@ html.dark-theme #property-panel::-webkit-scrollbar-thumb {
 
   #model-panel {
     top: 110px;
+  }
+
+  #filter-toggle-btn {
+    top: 110px;
+  }
+
+  #filter-panel {
+    top: 164px;
   }
 
   #bouwvolgorde-timeline {

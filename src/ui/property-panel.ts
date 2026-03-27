@@ -2,7 +2,7 @@ import { ViewerEvent, type SelectionEvent } from "@speckle/viewer";
 import type { ViewerInstance } from "../core/viewer-setup";
 import { SPECKLE_SERVER } from "../core/viewer-setup";
 import type { PhaseMapping } from "../addons/bouwvolgorde/mark-parser";
-import { selectedIds } from "./context-menu";
+import { selectedIds, isolateSelected, hideSelected, resetFilters, hasActiveFilters } from "./context-menu";
 
 let _phaseMapping: PhaseMapping | null = null;
 
@@ -31,6 +31,39 @@ export function createPropertyPanel(instance: ViewerInstance): HTMLElement {
   header.appendChild(title);
   header.appendChild(closeBtn);
   panel.appendChild(header);
+
+  // Action bar: Isoleer, Verberg, Reset
+  const actionBar = document.createElement("div");
+  actionBar.className = "pp-actions";
+
+  const btnIsolate = document.createElement("button");
+  btnIsolate.className = "pp-action-btn";
+  btnIsolate.textContent = "Isoleer";
+  btnIsolate.addEventListener("click", () => {
+    isolateSelected();
+    panel.classList.add("hidden");
+  });
+
+  const btnHide = document.createElement("button");
+  btnHide.className = "pp-action-btn";
+  btnHide.textContent = "Verberg";
+  btnHide.addEventListener("click", () => {
+    hideSelected();
+    panel.classList.add("hidden");
+  });
+
+  const btnReset = document.createElement("button");
+  btnReset.className = "pp-action-btn pp-action-reset";
+  btnReset.textContent = "Reset";
+  btnReset.addEventListener("click", () => {
+    resetFilters();
+    panel.classList.add("hidden");
+  });
+
+  actionBar.appendChild(btnIsolate);
+  actionBar.appendChild(btnHide);
+  actionBar.appendChild(btnReset);
+  panel.appendChild(actionBar);
 
   const body = document.createElement("div");
   body.className = "pp-body";

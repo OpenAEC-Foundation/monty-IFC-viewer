@@ -4,6 +4,7 @@ import { createToolbar } from "./ui/toolbar";
 import { createPropertyPanel, setPropertyPanelMapping } from "./ui/property-panel";
 import { createModelPanel } from "./ui/model-panel";
 import { createContextMenu, setContextMenuMapping } from "./ui/context-menu";
+import { createFilterPanel } from "./ui/filter-panel";
 import { parseMarks, PhaseManager, createTimelineUI } from "./addons/bouwvolgorde";
 import "./style.css";
 
@@ -71,8 +72,8 @@ async function main(): Promise<void> {
 
     console.log("Model loaded successfully");
 
-    // Initialize bouwvolgorde player
-    initBouwvolgorde(instance, streamParams.projectId, overlay);
+    // Initialize bouwvolgorde player + filter panel
+    initBouwvolgorde(instance, streamParams.projectId, overlay, models.length > 1);
   } catch (error) {
     console.error("Model load failed:", error);
     showMessage("Model kon niet worden geladen. Controleer de stream URL.");
@@ -82,7 +83,8 @@ async function main(): Promise<void> {
 async function initBouwvolgorde(
   instance: ViewerInstance,
   projectId: string,
-  overlay: HTMLElement | null
+  overlay: HTMLElement | null,
+  hasModelPanel: boolean
 ): Promise<void> {
   try {
     console.log("Bouwvolgorde: parsing marks...");
@@ -100,6 +102,10 @@ async function initBouwvolgorde(
     const manager = new PhaseManager(instance, mapping);
     const timeline = createTimelineUI(manager);
     overlay?.appendChild(timeline);
+
+    // Add filter panel (uses same mapping data)
+    const filterPanel = createFilterPanel(instance, mapping, hasModelPanel);
+    overlay?.appendChild(filterPanel);
 
     console.log(`Bouwvolgorde: player ready with ${mapping.phases.length} phases`);
   } catch (error) {
