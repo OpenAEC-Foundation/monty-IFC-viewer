@@ -1,38 +1,30 @@
 import type { PhaseMapping } from "../addons/bouwvolgorde/mark-parser";
 import type { ViewerInstance } from "../core/viewer-setup";
-import { selectedIds, isolateSelected, hasActiveFilters, resetFilters } from "./context-menu";
+import { resetFilters } from "./context-menu";
+import type { PanelParts } from "./model-panel";
 
 const FILTER_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>`;
 
 /**
- * Creates the filter panel with Mark input and Type selection.
- * Positioned below the model toggle button on the left side.
+ * Creates the filter button + panel.
+ * Returns button and panel separately for layout by caller.
  */
 export function createFilterPanel(
   instance: ViewerInstance,
-  mapping: PhaseMapping,
-  hasModelPanel = true
-): HTMLElement {
-  const wrapper = document.createElement("div");
+  mapping: PhaseMapping
+): PanelParts {
+  const button = document.createElement("button");
+  button.className = "left-tb-btn";
+  button.title = "Filtering";
+  button.innerHTML = FILTER_ICON;
 
-  // Floating toggle button — position below model button if present
-  const toggleBtn = document.createElement("button");
-  toggleBtn.id = "filter-toggle-btn";
-  toggleBtn.title = "Filtering";
-  toggleBtn.innerHTML = FILTER_ICON;
-  if (!hasModelPanel) {
-    toggleBtn.style.top = "70px";
-  }
-
-  // Dropdown panel
   const panel = document.createElement("div");
   panel.id = "filter-panel";
   panel.classList.add("hidden");
-  if (!hasModelPanel) {
-    panel.style.top = "124px";
-  }
 
-  toggleBtn.addEventListener("click", () => {
+  button.addEventListener("click", () => {
+    // Close sibling panels
+    document.getElementById("model-panel")?.classList.add("hidden");
     panel.classList.toggle("hidden");
   });
 
@@ -67,10 +59,8 @@ export function createFilterPanel(
   resetBtn.textContent = "Reset filters";
   resetBtn.addEventListener("click", () => {
     resetFilters();
-    // Clear Mark input
     const markInput = panel.querySelector<HTMLInputElement>(".fp-mark-input");
     if (markInput) markInput.value = "";
-    // Uncheck all type checkboxes
     panel.querySelectorAll<HTMLInputElement>(".fp-type-cb").forEach((cb) => {
       cb.checked = false;
     });
@@ -79,10 +69,8 @@ export function createFilterPanel(
 
   panel.appendChild(header);
   panel.appendChild(body);
-  wrapper.appendChild(toggleBtn);
-  wrapper.appendChild(panel);
 
-  return wrapper;
+  return { button, panel };
 }
 
 function createMarkFilter(
@@ -116,9 +104,11 @@ function createMarkFilter(
       return;
     }
 
+    // Reset first, then isolate — prevents stacking of previous filters
     instance.filtering.removeUserObjectColors();
+    instance.filtering.resetFilters();
     instance.filtering.isolateObjects(ids, undefined, true, true);
-    instance.viewer.requestRender();
+    forceRender(instance);
   }
 
   applyBtn.addEventListener("click", applyMarkFilter);
@@ -149,7 +139,6 @@ function createTypeFilter(
 
   section.appendChild(label);
 
-  // Sort types alphabetically, show count
   const sortedTypes = Array.from(mapping.typeToIds.entries()).sort((a, b) =>
     a[0].localeCompare(b[0], undefined, { numeric: true })
   );
@@ -187,6 +176,14 @@ function createTypeFilter(
   return section;
 }
 
+/** Force a double render to ensure Speckle updates visually */
+function forceRender(instance: ViewerInstance): void {
+  instance.viewer.requestRender();
+  requestAnimationFrame(() => {
+    instance.viewer.requestRender();
+  });
+}
+
 function applyTypeFilter(
   instance: ViewerInstance,
   mapping: PhaseMapping,
@@ -197,14 +194,12 @@ function applyTypeFilter(
   );
 
   if (checked.length === 0) {
-    // No filter — reset
     instance.filtering.removeUserObjectColors();
     instance.filtering.resetFilters();
-    instance.viewer.requestRender();
+    forceRender(instance);
     return;
   }
 
-  // Collect all IDs from checked types
   const visibleIds: string[] = [];
   for (const cb of checked) {
     const typeName = cb.dataset.type!;
@@ -212,7 +207,9 @@ function applyTypeFilter(
     if (ids) visibleIds.push(...ids);
   }
 
+  // Reset first, then apply new isolation — isolateObjects is additive
   instance.filtering.removeUserObjectColors();
+  instance.filtering.resetFilters();
   instance.filtering.isolateObjects(visibleIds, undefined, true, true);
-  instance.viewer.requestRender();
+  forceRender(instance);
 }

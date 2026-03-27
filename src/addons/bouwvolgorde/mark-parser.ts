@@ -96,6 +96,7 @@ export async function parseMarks(
           typeToIds.set(originalType, [nodeId]);
         }
       }
+
     }
 
     completed += batch.length;
@@ -119,10 +120,9 @@ export async function parseMarks(
   }
 
   console.log(
-    `Bouwvolgorde: ${phases.length} fases gevonden, ` +
-    `${allMarkedIds.length} elementen met Mark, ` +
-    `${unmarkedIds.length} zonder Mark (incl. ${allNodeIds.size - elements.length} non-RevitObjects), ` +
-    `${typeToIds.size} unieke types`
+    `Bouwvolgorde: ${phases.length} fases, ` +
+    `${allMarkedIds.length} met Mark, ` +
+    `${typeToIds.size} types`
   );
 
   return { phases, markToIds, allMarkedIds, unmarkedIds, nodeIdToMark, typeToIds, nodeIdToType };

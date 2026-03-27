@@ -2,7 +2,6 @@ import type { IViewer } from "@speckle/viewer";
 import { SpeckleLoader } from "@speckle/viewer";
 import type { LoadedModel } from "../core/stream-loader";
 
-// Stacked layers icon — clear "models" metaphor
 const LAYERS_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>`;
 
 interface ModelState {
@@ -10,28 +9,31 @@ interface ModelState {
   visible: boolean;
 }
 
+export interface PanelParts {
+  button: HTMLButtonElement;
+  panel: HTMLElement;
+}
+
 /**
- * Creates the floating toggle button + dropdown model panel.
- * Returns a container element with both inside.
+ * Creates the model toggle button + panel.
+ * Returns button and panel separately for layout by caller.
  */
 export function createModelPanel(
   viewer: IViewer,
   models: LoadedModel[]
-): HTMLElement {
-  const wrapper = document.createElement("div");
+): PanelParts {
+  const button = document.createElement("button");
+  button.className = "left-tb-btn";
+  button.title = "Modellen aan/uit";
+  button.innerHTML = LAYERS_ICON;
 
-  // Floating toggle button (always visible, left side)
-  const toggleBtn = document.createElement("button");
-  toggleBtn.id = "model-toggle-btn";
-  toggleBtn.title = "Modellen aan/uit";
-  toggleBtn.innerHTML = LAYERS_ICON;
-
-  // Dropdown panel (hidden by default)
   const panel = document.createElement("div");
   panel.id = "model-panel";
   panel.classList.add("hidden");
 
-  toggleBtn.addEventListener("click", () => {
+  button.addEventListener("click", () => {
+    // Close sibling panels
+    document.getElementById("filter-panel")?.classList.add("hidden");
     panel.classList.toggle("hidden");
   });
 
@@ -101,10 +103,7 @@ export function createModelPanel(
   panel.appendChild(header);
   panel.appendChild(body);
 
-  wrapper.appendChild(toggleBtn);
-  wrapper.appendChild(panel);
-
-  return wrapper;
+  return { button, panel };
 }
 
 function formatBranchName(name: string): string {

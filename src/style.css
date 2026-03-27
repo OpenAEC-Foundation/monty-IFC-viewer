@@ -106,6 +106,8 @@ body {
   border-radius: 10px;
   backdrop-filter: blur(10px);
   pointer-events: auto;
+  /* For submenu positioning */
+  overflow: visible;
 }
 
 .toolbar-btn {
@@ -147,6 +149,52 @@ body {
   height: 60%;
   width: 1px;
   background: var(--separator-color);
+}
+
+/* Toolbar Submenu (measurement dropdown) */
+.toolbar-submenu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 6px;
+  background: var(--bg-toolbar);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 4px 0;
+  min-width: 160px;
+  z-index: 100;
+  pointer-events: auto;
+}
+
+.toolbar-submenu.hidden {
+  display: none;
+}
+
+.toolbar-submenu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 14px;
+  border: none;
+  background: none;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: "Segoe UI", sans-serif;
+  text-align: left;
+  cursor: pointer;
+}
+
+.toolbar-submenu-item:hover {
+  background: var(--hover-bg);
+}
+
+.toolbar-submenu-item svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
 /* Explode slider */
@@ -549,11 +597,11 @@ body {
   color: var(--text-primary);
 }
 
-/* Model Panel */
+/* Model Panel (opens to the right of left toolbar) */
 #model-panel {
   position: absolute;
-  top: 124px;
-  left: 12px;
+  top: 70px;
+  left: 72px;
   width: 240px;
   background: var(--bg-toolbar);
   border: 1px solid var(--border-subtle);
@@ -631,41 +679,53 @@ body {
   text-overflow: ellipsis;
 }
 
-/* Filter Panel */
-#filter-toggle-btn {
+/* Left Toolbar (model + filter buttons) */
+#left-toolbar {
   position: absolute;
-  top: 124px;
+  top: 70px;
   left: 12px;
-  width: 44px;
-  height: 44px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  background: var(--bg-toolbar);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  backdrop-filter: blur(10px);
+  pointer-events: auto;
+}
+
+.left-tb-btn {
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--border-subtle);
-  border-radius: 10px;
-  background: var(--bg-toolbar);
-  backdrop-filter: blur(10px);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
   color: var(--text-primary);
   cursor: pointer;
-  pointer-events: auto;
-  transition: background 0.15s;
+  transition: background 0.15s, border-color 0.15s;
 }
 
-#filter-toggle-btn:hover {
+.left-tb-btn:hover {
   background: var(--hover-bg);
+  border-color: var(--border-subtle);
 }
 
-#filter-toggle-btn svg {
-  width: 22px;
-  height: 22px;
+.left-tb-btn svg {
+  width: 20px;
+  height: 20px;
 }
 
+/* Filter Panel (opens to the right of left toolbar) */
 #filter-panel {
   position: absolute;
-  top: 178px;
-  left: 12px;
+  top: 70px;
+  left: 72px;
   width: 260px;
-  max-height: calc(100vh - 200px);
+  max-height: calc(100vh - 90px);
   background: var(--bg-toolbar);
   border: 1px solid var(--border-subtle);
   border-radius: 10px;
@@ -810,35 +870,6 @@ html.dark-theme #property-panel::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.15);
 }
 
-/* Model toggle button (floating, left side) */
-#model-toggle-btn {
-  position: absolute;
-  top: 70px;
-  left: 12px;
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--border-subtle);
-  border-radius: 10px;
-  background: var(--bg-toolbar);
-  backdrop-filter: blur(10px);
-  color: var(--text-primary);
-  cursor: pointer;
-  pointer-events: auto;
-  transition: background 0.15s;
-}
-
-#model-toggle-btn:hover {
-  background: var(--hover-bg);
-}
-
-#model-toggle-btn svg {
-  width: 22px;
-  height: 22px;
-}
-
 /* Responsive */
 @media (max-width: 768px) {
   #loading-indicator {
@@ -877,20 +908,14 @@ html.dark-theme #property-panel::-webkit-scrollbar-thumb {
     margin-right: 4px;
   }
 
-  #model-toggle-btn {
+  #left-toolbar {
     top: 56px;
   }
 
-  #model-panel {
-    top: 110px;
-  }
-
-  #filter-toggle-btn {
-    top: 110px;
-  }
-
+  #model-panel,
   #filter-panel {
-    top: 164px;
+    top: 56px;
+    left: 64px;
   }
 
   #bouwvolgorde-timeline {

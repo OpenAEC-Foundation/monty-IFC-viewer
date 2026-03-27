@@ -61,11 +61,17 @@ async function main(): Promise<void> {
     // Zoom to fit after loading
     instance.camera.setCameraView([], true);
 
-    // Add model panel if multiple models loaded
+    // Left toolbar (model toggle + filter button in one bar)
+    const leftToolbar = document.createElement("div");
+    leftToolbar.id = "left-toolbar";
+
     if (models.length > 1) {
-      const modelPanel = createModelPanel(instance.viewer, models);
-      overlay?.appendChild(modelPanel);
+      const { button, panel } = createModelPanel(instance.viewer, models);
+      leftToolbar.appendChild(button);
+      overlay?.appendChild(panel);
     }
+
+    overlay?.appendChild(leftToolbar);
 
     // Expose for debugging
     (window as unknown as Record<string, unknown>).__instance = instance;
@@ -73,7 +79,7 @@ async function main(): Promise<void> {
     console.log("Model loaded successfully");
 
     // Initialize bouwvolgorde player + filter panel
-    initBouwvolgorde(instance, streamParams.projectId, overlay, models.length > 1);
+    initBouwvolgorde(instance, streamParams.projectId, overlay, leftToolbar);
   } catch (error) {
     console.error("Model load failed:", error);
     showMessage("Model kon niet worden geladen. Controleer de stream URL.");
@@ -84,7 +90,7 @@ async function initBouwvolgorde(
   instance: ViewerInstance,
   projectId: string,
   overlay: HTMLElement | null,
-  hasModelPanel: boolean
+  leftToolbar: HTMLElement
 ): Promise<void> {
   try {
     console.log("Bouwvolgorde: parsing marks...");
@@ -103,8 +109,9 @@ async function initBouwvolgorde(
     const timeline = createTimelineUI(manager);
     overlay?.appendChild(timeline);
 
-    // Add filter panel (uses same mapping data)
-    const filterPanel = createFilterPanel(instance, mapping, hasModelPanel);
+    // Add filter button to left toolbar, panel to overlay
+    const { button: filterBtn, panel: filterPanel } = createFilterPanel(instance, mapping);
+    leftToolbar.appendChild(filterBtn);
     overlay?.appendChild(filterPanel);
 
     console.log(`Bouwvolgorde: player ready with ${mapping.phases.length} phases`);

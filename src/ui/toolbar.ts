@@ -34,9 +34,6 @@ export function createToolbar(instance: ViewerInstance): HTMLElement {
     for (const mode of modes) {
       if (mode !== except) {
         toggleStates[mode] = false;
-        toolbar
-          .querySelector(`[data-tool="${mode}"]`)
-          ?.classList.remove("active");
       }
     }
   }
@@ -49,64 +46,86 @@ export function createToolbar(instance: ViewerInstance): HTMLElement {
     onClick: () => void;
   }
 
-  const tools: Tool[] = [
+  // --- Measurement submenu ---
+  const measureBtn = document.createElement("button");
+  measureBtn.className = "toolbar-btn separator-after";
+  measureBtn.dataset.tool = "measure";
+  measureBtn.title = "Meettools";
+  measureBtn.innerHTML = ICONS.measureDistance;
+
+  const measureMenu = document.createElement("div");
+  measureMenu.className = "toolbar-submenu hidden";
+
+  interface SubItem { id: string; icon: string; label: string; onClick: () => void }
+  const measureItems: SubItem[] = [
     {
-      id: "measure-distance",
-      icon: ICONS.measureDistance,
-      title: "Afstand meten",
+      id: "measure-distance", icon: ICONS.measureDistance, label: "Afstand",
       onClick: () => {
-        const active = toggle("measure-distance");
-        deactivateMeasureModes("measure-distance");
-        instance.measurements.enabled = active;
-        if (active) {
-          instance.measurements.options = {
-            ...instance.measurements.options,
-            type: MeasurementType.POINTTOPOINT,
-          };
-        }
+        deactivateMeasureModes("");
+        toggleStates["measure-distance"] = true;
+        instance.measurements.enabled = true;
+        instance.measurements.options = { ...instance.measurements.options, type: MeasurementType.POINTTOPOINT };
+        measureBtn.classList.add("active");
+        measureMenu.classList.add("hidden");
       },
     },
     {
-      id: "measure-perpendicular",
-      icon: ICONS.measurePerpendicular,
-      title: "Loodrecht meten",
+      id: "measure-perpendicular", icon: ICONS.measurePerpendicular, label: "Loodrecht",
       onClick: () => {
-        const active = toggle("measure-perpendicular");
-        deactivateMeasureModes("measure-perpendicular");
-        instance.measurements.enabled = active;
-        if (active) {
-          instance.measurements.options = {
-            ...instance.measurements.options,
-            type: MeasurementType.PERPENDICULAR,
-          };
-        }
+        deactivateMeasureModes("");
+        toggleStates["measure-perpendicular"] = true;
+        instance.measurements.enabled = true;
+        instance.measurements.options = { ...instance.measurements.options, type: MeasurementType.PERPENDICULAR };
+        measureBtn.classList.add("active");
+        measureMenu.classList.add("hidden");
       },
     },
     {
-      id: "measure-area",
-      icon: ICONS.measureArea,
-      title: "Oppervlakte meten",
+      id: "measure-area", icon: ICONS.measureArea, label: "Oppervlakte",
       onClick: () => {
-        const active = toggle("measure-area");
-        deactivateMeasureModes("measure-area");
-        instance.measurements.enabled = active;
-        if (active) {
-          instance.measurements.options = {
-            ...instance.measurements.options,
-            type: MeasurementType.AREA,
-          };
-        }
+        deactivateMeasureModes("");
+        toggleStates["measure-area"] = true;
+        instance.measurements.enabled = true;
+        instance.measurements.options = { ...instance.measurements.options, type: MeasurementType.AREA };
+        measureBtn.classList.add("active");
+        measureMenu.classList.add("hidden");
       },
     },
     {
-      id: "measure-clear",
-      icon: ICONS.delete,
-      title: "Metingen wissen",
-      separator: true,
+      id: "measure-clear", icon: ICONS.delete, label: "Wissen",
       onClick: () => {
+        deactivateMeasureModes("");
+        instance.measurements.enabled = false;
         instance.measurements.clearMeasurements();
+        measureBtn.classList.remove("active");
+        measureMenu.classList.add("hidden");
       },
     },
+  ];
+
+  for (const item of measureItems) {
+    const row = document.createElement("button");
+    row.className = "toolbar-submenu-item";
+    row.innerHTML = `${item.icon}<span>${item.label}</span>`;
+    row.addEventListener("click", (e) => { e.stopPropagation(); item.onClick(); });
+    measureMenu.appendChild(row);
+  }
+
+  measureBtn.addEventListener("click", () => {
+    measureMenu.classList.toggle("hidden");
+  });
+
+  // Close submenu on click outside
+  document.addEventListener("mousedown", (e: MouseEvent) => {
+    if (!measureBtn.contains(e.target as Node) && !measureMenu.contains(e.target as Node)) {
+      measureMenu.classList.add("hidden");
+    }
+  });
+
+  toolbar.appendChild(measureBtn);
+  toolbar.appendChild(measureMenu);
+
+  const tools: Tool[] = [
     {
       id: "section-box",
       icon: ICONS.sectionBox,
@@ -160,6 +179,8 @@ export function createToolbar(instance: ViewerInstance): HTMLElement {
         toolbar
           .querySelectorAll(".active")
           .forEach((el) => el.classList.remove("active"));
+        measureBtn.classList.remove("active");
+        measureMenu.classList.add("hidden");
       },
     },
     {
