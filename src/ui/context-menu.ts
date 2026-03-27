@@ -104,14 +104,14 @@ export function createContextMenu(instance: ViewerInstance): HTMLElement {
     ]);
   }
 
-  // Right-click: show context menu
-  const container = document.getElementById("viewer-container")!;
-  container.addEventListener("contextmenu", (e: MouseEvent) => {
-    e.preventDefault();
+  function closeMenu(): void {
+    menu.classList.add("hidden");
+  }
 
-    // Always show menu — with or without selection (for Reset)
-    menu.style.left = `${e.clientX}px`;
-    menu.style.top = `${e.clientY}px`;
+  // Right-click: show context menu (on document so it works everywhere)
+  document.addEventListener("contextmenu", (e: MouseEvent) => {
+    e.preventDefault();
+    closeMenu(); // Always close first
 
     // Show/hide action buttons based on selection
     const hasSelection = selectedIds.size > 0;
@@ -122,15 +122,21 @@ export function createContextMenu(instance: ViewerInstance): HTMLElement {
 
     // Only show menu if there's something to do
     if (hasSelection || hasActiveFilters) {
+      menu.style.left = `${e.clientX}px`;
+      menu.style.top = `${e.clientY}px`;
       menu.classList.remove("hidden");
     }
   });
 
-  // Close menu on any click outside the menu
+  // Close menu on any click, mousedown, or Escape
   document.addEventListener("mousedown", (e: MouseEvent) => {
-    if (!menu.contains(e.target as Node)) {
-      menu.classList.add("hidden");
-    }
+    if (!menu.contains(e.target as Node)) closeMenu();
+  });
+  document.addEventListener("click", (e: MouseEvent) => {
+    if (!menu.contains(e.target as Node)) closeMenu();
+  });
+  document.addEventListener("keydown", (e: KeyboardEvent) => {
+    if (e.key === "Escape") closeMenu();
   });
 
   // --- Actions ---

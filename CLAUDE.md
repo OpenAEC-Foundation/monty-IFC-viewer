@@ -3,7 +3,7 @@
 Web-based IFC viewer met **bouwvolgorde visualisatie** voor 3BM Engineering.
 Klanten krijgen een link, openen de viewer op tablet/telefoon, en zien hun model met bouwvolgorde + meettools.
 
-**Status:** MVP live — bouwvolgorde, meettools, model toggle, day/night mode
+**Status:** MVP live — bouwvolgorde, context menu, multi-select, linked Mark, meettools, model toggle, day/night
 **Live URL:** https://montyviewer.vercel.app/?project=6aa8af2d3e
 **GitHub:** https://github.com/piyton/montyviewer (private)
 **Speckle server:** https://app.montyviewer.com (self-hosted, Docker op NAS)
@@ -104,7 +104,8 @@ montyviewer/
         timeline-ui.ts        # Slider/stepper/play component
     ui/
       toolbar.ts              # Toolbar met meettools, sections, explode, theme toggle
-      property-panel.ts       # Properties panel (Identity Data, Text params)
+      property-panel.ts       # Properties panel (single + multi-select met VAR)
+      context-menu.ts         # Rechtermuisklik: isoleer, verberg, reset + multi-select
       model-panel.ts          # Model toggle (branches aan/uit)
     main.ts                   # App entry: URL parsing, viewer init, add-on registratie
     style.css                 # Day/night theme, responsive, alle UI styling
@@ -143,7 +144,11 @@ git push          # Vercel bouwt en deployt automatisch
 |---------|--------|-----------|
 | Speckle viewer embedding | Werkend | viewer-setup.ts, stream-loader.ts |
 | Bouwvolgorde player | Werkend | mark-parser.ts, phase-manager.ts, timeline-ui.ts |
-| Property panel | Werkend | property-panel.ts |
+| Property panel (single + multi-select) | Werkend | property-panel.ts |
+| Multi-select (Ctrl/Shift+klik) | Werkend | context-menu.ts, property-panel.ts |
+| Context menu (isoleer/verberg/reset) | Werkend | context-menu.ts |
+| Linked Mark highlighting (Part + Generic Model) | Werkend | context-menu.ts, mark-parser.ts |
+| CLT_T_Mark support (Generic Models) | Werkend | mark-parser.ts |
 | Meettools (afstand, loodrecht, oppervlakte) | Werkend | toolbar.ts |
 | Section box | Werkend | toolbar.ts |
 | Explode view | Werkend | toolbar.ts |
@@ -156,8 +161,8 @@ git push          # Vercel bouwt en deployt automatisch
 ## Bouwvolgorde — Hoe het werkt
 
 1. **mark-parser.ts**: Loopt WorldTree, vindt RevitObjects met `category`
-2. Batch-fetch Mark property via Speckle REST API (`/objects/{id}/{id}/single`)
-3. Bouwt `PhaseMapping`: gesorteerde fases, markToIds map, unmarkedIds (incl. alle non-RevitObjects)
+2. Batch-fetch via Speckle REST API: eerst `CLT_T_Mark` (Text groep), dan `Mark` (Identity Data). Mark=0 wordt genegeerd.
+3. Bouwt `PhaseMapping`: gesorteerde fases, markToIds map, nodeIdToMark reverse lookup, unmarkedIds
 4. **phase-manager.ts**: `isolateObjects(visibleIds, ghost=true)` voor ghosting + `setUserObjectColors` voor oranje highlight
 5. **timeline-ui.ts**: Slider, play/pause, prev/next, speed control
 
@@ -178,12 +183,14 @@ git push          # Vercel bouwt en deployt automatisch
 | Model laden | `SpeckleLoader` + `viewer.loadObject()` | stream-loader.ts |
 | Model unloaden | `viewer.unloadObject(url)` | model-panel.ts |
 | Branches ophalen | GraphQL `stream.branches` | stream-loader.ts |
-| Elementen kleuren | `filtering.setUserObjectColors()` | phase-manager.ts |
-| Elementen ghosten | `filtering.isolateObjects(..., ghost=true)` | phase-manager.ts |
-| Filters resetten | `filtering.resetFilters()` | phase-manager.ts, toolbar.ts |
+| Elementen kleuren | `filtering.setUserObjectColors()` | phase-manager.ts, context-menu.ts |
+| Elementen ghosten | `filtering.isolateObjects(..., ghost=true)` | phase-manager.ts, context-menu.ts |
+| Elementen verbergen | `filtering.hideObjects(..., ghost=true)` | context-menu.ts |
+| Filters resetten | `filtering.resetFilters()` | phase-manager.ts, toolbar.ts, context-menu.ts |
+| Render forceren | `viewer.requestRender()` | context-menu.ts |
 | Properties lezen | REST `/objects/{stream}/{obj}/single` | mark-parser.ts, property-panel.ts |
 | WorldTree lopen | `viewer.getWorldTree().walk()` | mark-parser.ts |
-| Object klik | `ViewerEvent.ObjectClicked` | property-panel.ts |
+| Object klik | `ViewerEvent.ObjectClicked` | property-panel.ts, context-menu.ts |
 | Maatvoering | `MeasurementsExtension` | toolbar.ts |
 | Section box | `OrientedSectionTool` (niet SectionTool!) | toolbar.ts |
 | Explode | `ExplodeExtension` | toolbar.ts |
@@ -196,6 +203,11 @@ git push          # Vercel bouwt en deployt automatisch
 - **SectionTool** is een stub met `visible: false` hardcoded — gebruik **OrientedSectionTool**
 - **ExplodeExtension**: `setExplode(0)` + `enabled = false` vereist 2x `requestAnimationFrame` ertussen
 - **Speckle WorldTree**: Nested parameters (Identity Data, Text) zijn referenties — volledige data vereist REST API fetch
+- **CLT_T_Mark** zit in `Instance Parameters > Text` groep (Generic Models met family `00_CLT TAG`). Identity Data/Mark op deze elementen is altijd `0` — moet genegeerd worden
+- **CLT TAG structuur**: Level "No Level" > Generic Models > type collections (NSI-ISI, ISI-NSI, etc.) > elementen
+- **`setUserObjectColors` overschrijft `hideObjects`/`isolateObjects`** — altijd `removeUserObjectColors()` aanroepen vóór filter-acties
+- **`requestRender()`** nodig na `hideObjects`/`isolateObjects` vanuit context menu (buiten Speckle's eigen event loop)
+- **Overlay `pointer-events: none`** — alle child-elementen die klikbaar moeten zijn hebben `pointer-events: auto` nodig
 - **npm overrides** nodig voor `@speckle/objectloader2` en `@speckle/shared` (v2.25.4)
 - **Speckle server** draait op `app.montyviewer.com` (Docker/Synology NAS)
 - Streams zijn publiek — geen auth nodig voor viewer
@@ -204,14 +216,60 @@ git push          # Vercel bouwt en deployt automatisch
 
 ## Volgende stappen (TODO)
 
-1. **Views + Annotaties**: 2D annotaties uit Revit naar viewer (zie "Annotatie-strategie" hieronder)
-2. **Schedules**: Revit schedules tonen in de viewer (DataTable via Speckle API)
-3. **Filtering**: Category toggle, isolate/hide per categorie
-4. **BCF**: Topics, viewpoints, import/export
-5. **UI polish**: Betere iconen, loading states, error handling
-6. **Hierarchie tree**: IFC spatial structure sidebar
-7. **Performance**: Mark parser caching (nu batch-fetch bij elke load)
-8. **Commercieel**: Custom domein, branding per klant
+1. **Projecten overview per klant**: Landing page met projectkaarten (zie "Projecten Overview" hieronder)
+2. **Views + Annotaties**: 2D annotaties uit Revit naar viewer (zie "Annotatie-strategie" hieronder)
+3. **Schedules**: Revit schedules tonen in de viewer (DataTable via Speckle API)
+4. **Isoleer/Verberg knoppen in property panel**: Boven het property panel ook Isoleer, Verberg en Reset knoppen (naast rechtermuisklik context menu)
+5. **Maatvoeren mobiel**: Op mobiel opent eerst het property panel bij klik i.p.v. meetactie — UX conflict oplossen
+6. **Filtering**: Category toggle, isolate/hide per categorie
+7. **Renvooi / Legenda**: Interactieve legenda van family types. Klik regel → highlight alle instanties. Bidirectioneel: klik 3D element → renvooiregel licht op. Automatisch opgebouwd uit WorldTree + batch REST API fetch voor family/type info.
+8. **Levering highlighting**: Symbolische krat-objecten in model. Klik krat → highlight alle elementen in die levering via `Levering_ID` parameter. Vereist `Levering_ID` op panelen + kratten in Revit.
+9. **Detail fly-to**: 3D detail-symbolen. Klik → `camera.setCameraView()` naar opgeslagen viewpoint + section box + annotaties laden. Eigen tab "Details & Uitsneden" (hoort niet in legenda). Vereist `detail_view`, camera data, `detail_ref` parameters in Revit.
+10. **BCF**: Topics, viewpoints, import/export
+11. **UI polish**: Betere iconen, loading states, error handling
+12. **Hierarchie tree**: IFC spatial structure sidebar
+13. **Performance**: Mark parser caching (nu batch-fetch bij elke load)
+14. **Self-hosting**: Van Vercel af, hosten op eigen NAS/extern (zie "Projecten Overview" niveau 2/3)
+15. **Commercieel**: Custom domein, branding per klant
+
+---
+
+## Projecten Overview — Strategie
+
+Klanten moeten een landing page krijgen met hun projecten. Drie niveaus uitgewerkt:
+
+### Niveau 1: Statische projectenlijst (1-2 dagen)
+JSON config bestand met projecten per klant. Simpele landing page met projectkaarten + thumbnails.
+- **Config:** `projects.json` met `{ klant, projectNaam, projectId, thumbnail? }`
+- **Thumbnails:** Via Speckle GraphQL (`project.preview`) of handmatige screenshot
+- **Routing:** `/?client=klantX` → projectenlijst, klik → `/?project=ID` (huidige viewer)
+- **Hosting:** Vercel (huidige setup) of statisch op NAS
+- **Auth:** Geen — URL is de toegang (like-for-like met huidige opzet)
+- **Pro:** Snel, simpel, volledig onder controle
+- **Con:** Handmatig bijhouden van projectenlijst
+
+### Niveau 2: Dynamisch uit Speckle (3-5 dagen)
+Projecten automatisch ophalen uit Speckle server op basis van naamconventie of tags.
+- **Query:** Speckle GraphQL `streams` met filter op naam/tag per klant
+- **Naamconventie:** bijv. `[KLANTNAAM] - [PROJECTNAAM]` of tag `client:klantX`
+- **Link-tokens:** Unieke URL per klant (hash of kort token) → server-side mapping
+- **Serverless functions:** Vercel Edge Functions of Cloudflare Workers voor klant-lookup
+- **Self-hosting optie:** Docker container op NAS naast Speckle, of Nginx + static files + cron voor JSON rebuild
+- **Pro:** Geen handmatig onderhoud, schaalt automatisch
+- **Con:** Meer infra nodig, naamconventie-discipline vereist
+
+### Niveau 3: Volledig met login (2+ weken)
+User accounts, admin dashboard, klant-project koppeling in database.
+- **Auth:** Login systeem (bijv. Supabase, Auth0, of eigen)
+- **Database:** Klant-project mapping, permissies, branding per klant
+- **Admin panel:** Projecten toewijzen, klanten beheren, thumbnails uploaden
+- **Self-hosting:** Volledig op eigen NAS/VPS — geen Vercel dependency
+- **Pro:** Professioneel, schaalbaar, per-klant branding
+- **Con:** Significant meer ontwikkeltijd en onderhoud
+
+**Aanbeveling:** Start met Niveau 1. Werk snel, klant heeft direct een landing page. Upgrade naar Niveau 2 wanneer het handmatig bijhouden van `projects.json` vervelend wordt. Niveau 3 alleen als er daadwerkelijk meerdere klanten met login-behoefte zijn.
+
+**Self-hosting notitie:** Niveau 1 kan direct op NAS (Nginx + static build). Niveau 2 vereist een lichte backend (Node/Python) naast Speckle. Bij self-hosting vervalt Vercel auto-deploy — vervangen door git hook of CI/CD script op NAS.
 
 ---
 
@@ -258,6 +316,7 @@ Revit Connector kan schedules exporteren als `DataTable` objecten. Ophalen via G
 
 | Onderwerp | Locatie |
 |-----------|---------|
+| **Research & alle ideeën** | `RESEARCH-VIEWER-IDEAS.md` — **TODO: structureren en herprioriteren** |
 | Vorig prototype (ThatOpen v2) | `../private-test-projecten/viewer-montyviewer/` |
 | BCF prototype (ThatOpen v3) | `../private-test-projecten/viewer-ifcviewer-bcftest/` |
 | Strategische notities | `Management/log 2026-02-27.md` |
@@ -267,5 +326,7 @@ Revit Connector kan schedules exporteren als `DataTable` objecten. Ophalen via G
 
 ## Test Data
 
-- **Project 6aa8af2d3e**: CLT constructie met 3 branches, 381 elementen, 111 Mark fases
+- **Project 6aa8af2d3e**: CLT constructie met 3 branches, 381 elementen, 110 Mark fases
+- **CLT TAG Generic Models**: family `00_CLT TAG`, level "No Level", types: NSI-ISI, ISI-NSI, NSI-NSI, ISI-ISI
+- **Parts**: Mark in Identity Data, CLT TAGs: CLT_T_Mark in Text groep
 - NAS: `Z:\50_projecten\5_3BM_engineering\0001_3BM Engineering Documentatie\IA\Project Montyviewer\`

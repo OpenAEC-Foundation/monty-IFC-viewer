@@ -24,7 +24,7 @@ export function createTimelineUI(manager: PhaseManager): HTMLElement {
   playBtn.classList.add("bv-play-btn");
 
   const resetBtn = createButton("", "Reset");
-  resetBtn.innerHTML = `<svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14"><path fill-rule="evenodd" d="M4.755 10.059a7.5 7.5 0 0112.548-3.364l1.903 1.903H14.25a.75.75 0 000 1.5h6.5a.75.75 0 00.75-.75v-6.5a.75.75 0 00-1.5 0v3.293l-1.643-1.643A9 9 0 012.818 9.14a.75.75 0 001.937.918zM15.245 9.941a7.5 7.5 0 01-12.548 3.364L.794 11.402H5.75a.75.75 0 000-1.5h-6.5a.75.75 0 00-.75.75v6.5a.75.75 0 001.5 0v-3.293l1.643 1.643A9 9 0 0017.182 10.86a.75.75 0 00-1.937-.918z" clip-rule="evenodd"/></svg>`;
+  resetBtn.innerHTML = `<svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14"><rect x="4" y="4" width="12" height="12" rx="2"/></svg>`;
   resetBtn.title = "Reset bouwvolgorde";
 
   // Slider
