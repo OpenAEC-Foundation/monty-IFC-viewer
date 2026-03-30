@@ -64,6 +64,7 @@ export function createToolbar(instance: ViewerInstance): HTMLElement {
         deactivateMeasureModes("");
         toggleStates["measure-distance"] = true;
         instance.measurements.enabled = true;
+        instance.selection.enabled = false;
         instance.measurements.options = { ...instance.measurements.options, type: MeasurementType.POINTTOPOINT, vertexSnap: true };
         measureBtn.classList.add("active");
         measureMenu.classList.add("hidden");
@@ -75,6 +76,7 @@ export function createToolbar(instance: ViewerInstance): HTMLElement {
         deactivateMeasureModes("");
         toggleStates["measure-perpendicular"] = true;
         instance.measurements.enabled = true;
+        instance.selection.enabled = false;
         instance.measurements.options = { ...instance.measurements.options, type: MeasurementType.PERPENDICULAR, vertexSnap: true };
         measureBtn.classList.add("active");
         measureMenu.classList.add("hidden");
@@ -86,6 +88,7 @@ export function createToolbar(instance: ViewerInstance): HTMLElement {
         deactivateMeasureModes("");
         toggleStates["measure-area"] = true;
         instance.measurements.enabled = true;
+        instance.selection.enabled = false;
         instance.measurements.options = { ...instance.measurements.options, type: MeasurementType.AREA, vertexSnap: true };
         measureBtn.classList.add("active");
         measureMenu.classList.add("hidden");
@@ -96,6 +99,7 @@ export function createToolbar(instance: ViewerInstance): HTMLElement {
       onClick: () => {
         deactivateMeasureModes("");
         instance.measurements.enabled = false;
+        instance.selection.enabled = true;
         instance.measurements.clearMeasurements();
         measureBtn.classList.remove("active");
         measureMenu.classList.add("hidden");
@@ -176,6 +180,7 @@ export function createToolbar(instance: ViewerInstance): HTMLElement {
       onClick: () => {
         instance.filtering.resetFilters();
         instance.measurements.enabled = false;
+        instance.selection.enabled = true;
         instance.measurements.clearMeasurements();
         instance.sections.enabled = false;
         instance.sections.visible = false;

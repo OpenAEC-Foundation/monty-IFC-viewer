@@ -72,6 +72,8 @@ export function createPropertyPanel(instance: ViewerInstance): HTMLElement {
   const projectId = new URLSearchParams(window.location.search).get("project") || "";
 
   instance.viewer.on(ViewerEvent.ObjectClicked, (event: SelectionEvent | null) => {
+    // Suppress selection when measuring — measurements handle their own clicks
+    if (instance.measurements.enabled) return;
     if (!event || event.hits.length === 0) {
       panel.classList.add("hidden");
       return;

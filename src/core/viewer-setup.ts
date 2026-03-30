@@ -40,6 +40,7 @@ export async function initViewer(
   camera.options = {
     ...camera.options,
     zoomToCursor: true,
+    orbitAroundCursor: true,
   };
 
   const selection = viewer.createExtension(SelectionExtension);

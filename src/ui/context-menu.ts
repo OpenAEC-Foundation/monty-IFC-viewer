@@ -100,6 +100,8 @@ export function createContextMenu(instance: ViewerInstance): HTMLElement {
 
   // Track selected elements — Ctrl/Shift for multi-select
   instance.viewer.on(ViewerEvent.ObjectClicked, (event: SelectionEvent | null) => {
+    // Suppress selection when measuring
+    if (_instance?.measurements.enabled) return;
     if (!event || event.hits.length === 0) {
       // Click on empty space: clear selection (unless Ctrl/Shift held)
       if (!event) {
