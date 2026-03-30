@@ -37,11 +37,19 @@ export async function initViewer(
   await viewer.init();
 
   const camera = viewer.createExtension(CameraController);
+  camera.options = {
+    ...camera.options,
+    zoomSensitivity: 0.6,
+    damperDecay: 6,
+    zoomToCursor: true,
+  };
+
   const selection = viewer.createExtension(SelectionExtension);
   const filtering = viewer.createExtension(FilteringExtension);
   const sections = viewer.createExtension(OrientedSectionTool);
   viewer.createExtension(SectionOutlines);
   const measurements = viewer.createExtension(MeasurementsExtension);
+  measurements.options = { ...measurements.options, vertexSnap: true };
   const explode = viewer.createExtension(ExplodeExtension);
 
   return { viewer, camera, selection, filtering, measurements, sections, explode };

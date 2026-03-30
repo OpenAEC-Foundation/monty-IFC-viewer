@@ -16,6 +16,8 @@ export interface PhaseMapping {
   typeToIds: Map<string, string[]>;
   /** Reverse lookup: node ID → Original Type */
   nodeIdToType: Map<string, string>;
+  /** Map from collectie index (100-tal) to array of node IDs (Parts + Generic Models) */
+  collectieToIds: Map<number, string[]>;
 }
 
 interface ElementInfo {
@@ -119,13 +121,28 @@ export async function parseMarks(
     }
   }
 
+  // Build collectie map: group marks per 100 (0-99, 100-199, etc.)
+  const collectieToIds = new Map<number, string[]>();
+  for (const [mark, ids] of markToIds) {
+    const num = parseInt(mark, 10);
+    if (isNaN(num)) continue;
+    const collectie = Math.floor(num / 100);
+    const existing = collectieToIds.get(collectie);
+    if (existing) {
+      existing.push(...ids);
+    } else {
+      collectieToIds.set(collectie, [...ids]);
+    }
+  }
+
   console.log(
     `Bouwvolgorde: ${phases.length} fases, ` +
     `${allMarkedIds.length} met Mark, ` +
-    `${typeToIds.size} types`
+    `${typeToIds.size} types, ` +
+    `${collectieToIds.size} collecties`
   );
 
-  return { phases, markToIds, allMarkedIds, unmarkedIds, nodeIdToMark, typeToIds, nodeIdToType };
+  return { phases, markToIds, allMarkedIds, unmarkedIds, nodeIdToMark, typeToIds, nodeIdToType, collectieToIds };
 }
 
 interface FetchResult {

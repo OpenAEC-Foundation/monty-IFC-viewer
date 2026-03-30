@@ -48,6 +48,11 @@ export function createFilterPanel(
   // --- Mark filter ---
   body.appendChild(createMarkFilter(instance, mapping));
 
+  // --- Collectie filter ---
+  if (mapping.collectieToIds.size > 0) {
+    body.appendChild(createCollectieFilter(instance, mapping));
+  }
+
   // --- Type filter ---
   if (mapping.typeToIds.size > 0) {
     body.appendChild(createTypeFilter(instance, mapping));
@@ -61,6 +66,9 @@ export function createFilterPanel(
     resetFilters();
     const markInput = panel.querySelector<HTMLInputElement>(".fp-mark-input");
     if (markInput) markInput.value = "";
+    panel.querySelectorAll<HTMLInputElement>(".fp-collectie-cb").forEach((cb) => {
+      cb.checked = false;
+    });
     panel.querySelectorAll<HTMLInputElement>(".fp-type-cb").forEach((cb) => {
       cb.checked = false;
     });
@@ -124,6 +132,87 @@ function createMarkFilter(
   section.appendChild(label);
   section.appendChild(row);
   return section;
+}
+
+function createCollectieFilter(
+  instance: ViewerInstance,
+  mapping: PhaseMapping
+): HTMLElement {
+  const section = document.createElement("div");
+  section.className = "fp-section";
+
+  const label = document.createElement("div");
+  label.className = "fp-section-label";
+  label.textContent = "Collectie";
+
+  section.appendChild(label);
+
+  const sortedCollecties = Array.from(mapping.collectieToIds.entries()).sort(
+    (a, b) => a[0] - b[0]
+  );
+
+  const list = document.createElement("div");
+  list.className = "fp-type-list";
+
+  for (const [collectie, ids] of sortedCollecties) {
+    const start = collectie * 100;
+    const end = start + 99;
+
+    const item = document.createElement("label");
+    item.className = "fp-type-item";
+
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.className = "fp-collectie-cb";
+    cb.dataset.collectie = String(collectie);
+
+    const text = document.createElement("span");
+    text.className = "fp-type-name";
+    text.textContent = `${start}–${end}`;
+
+    const count = document.createElement("span");
+    count.className = "fp-type-count";
+    count.textContent = String(ids.length);
+
+    cb.addEventListener("change", () => applyCollectieFilter(instance, mapping, list));
+
+    item.appendChild(cb);
+    item.appendChild(text);
+    item.appendChild(count);
+    list.appendChild(item);
+  }
+
+  section.appendChild(list);
+  return section;
+}
+
+function applyCollectieFilter(
+  instance: ViewerInstance,
+  mapping: PhaseMapping,
+  list: HTMLElement
+): void {
+  const checked = Array.from(
+    list.querySelectorAll<HTMLInputElement>(".fp-collectie-cb:checked")
+  );
+
+  if (checked.length === 0) {
+    instance.filtering.removeUserObjectColors();
+    instance.filtering.resetFilters();
+    forceRender(instance);
+    return;
+  }
+
+  const visibleIds: string[] = [];
+  for (const cb of checked) {
+    const collectie = parseInt(cb.dataset.collectie!, 10);
+    const ids = mapping.collectieToIds.get(collectie);
+    if (ids) visibleIds.push(...ids);
+  }
+
+  instance.filtering.removeUserObjectColors();
+  instance.filtering.resetFilters();
+  instance.filtering.isolateObjects(visibleIds, undefined, true, true);
+  forceRender(instance);
 }
 
 function createTypeFilter(

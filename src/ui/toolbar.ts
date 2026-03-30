@@ -64,7 +64,7 @@ export function createToolbar(instance: ViewerInstance): HTMLElement {
         deactivateMeasureModes("");
         toggleStates["measure-distance"] = true;
         instance.measurements.enabled = true;
-        instance.measurements.options = { ...instance.measurements.options, type: MeasurementType.POINTTOPOINT };
+        instance.measurements.options = { ...instance.measurements.options, type: MeasurementType.POINTTOPOINT, vertexSnap: true };
         measureBtn.classList.add("active");
         measureMenu.classList.add("hidden");
       },
@@ -75,7 +75,7 @@ export function createToolbar(instance: ViewerInstance): HTMLElement {
         deactivateMeasureModes("");
         toggleStates["measure-perpendicular"] = true;
         instance.measurements.enabled = true;
-        instance.measurements.options = { ...instance.measurements.options, type: MeasurementType.PERPENDICULAR };
+        instance.measurements.options = { ...instance.measurements.options, type: MeasurementType.PERPENDICULAR, vertexSnap: true };
         measureBtn.classList.add("active");
         measureMenu.classList.add("hidden");
       },
@@ -86,7 +86,7 @@ export function createToolbar(instance: ViewerInstance): HTMLElement {
         deactivateMeasureModes("");
         toggleStates["measure-area"] = true;
         instance.measurements.enabled = true;
-        instance.measurements.options = { ...instance.measurements.options, type: MeasurementType.AREA };
+        instance.measurements.options = { ...instance.measurements.options, type: MeasurementType.AREA, vertexSnap: true };
         measureBtn.classList.add("active");
         measureMenu.classList.add("hidden");
       },
@@ -112,11 +112,18 @@ export function createToolbar(instance: ViewerInstance): HTMLElement {
   }
 
   measureBtn.addEventListener("click", () => {
+    const wasHidden = measureMenu.classList.contains("hidden");
     measureMenu.classList.toggle("hidden");
+    // Position submenu via fixed coordinates (works inside overflow-x: auto on mobile)
+    if (wasHidden) {
+      const rect = measureBtn.getBoundingClientRect();
+      measureMenu.style.top = `${rect.bottom + 6}px`;
+      measureMenu.style.left = `${rect.left}px`;
+    }
   });
 
-  // Close submenu on click outside
-  document.addEventListener("mousedown", (e: MouseEvent) => {
+  // Close submenu on click outside (pointerdown works for both mouse and touch)
+  document.addEventListener("pointerdown", (e: PointerEvent) => {
     if (!measureBtn.contains(e.target as Node) && !measureMenu.contains(e.target as Node)) {
       measureMenu.classList.add("hidden");
     }
