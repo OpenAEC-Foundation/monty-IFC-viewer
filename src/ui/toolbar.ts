@@ -114,7 +114,6 @@ export function createToolbar(instance: ViewerInstance): HTMLElement {
   measureBtn.addEventListener("click", () => {
     const wasHidden = measureMenu.classList.contains("hidden");
     measureMenu.classList.toggle("hidden");
-    // Position submenu via fixed coordinates (works inside overflow-x: auto on mobile)
     if (wasHidden) {
       const rect = measureBtn.getBoundingClientRect();
       measureMenu.style.top = `${rect.bottom + 6}px`;
@@ -130,7 +129,9 @@ export function createToolbar(instance: ViewerInstance): HTMLElement {
   });
 
   toolbar.appendChild(measureBtn);
-  toolbar.appendChild(measureMenu);
+  // Append submenu to overlay (not toolbar) — toolbar has backdrop-filter
+  // which breaks position:fixed, and overflow-x:auto on mobile clips it
+  document.getElementById("overlay")?.appendChild(measureMenu);
 
   const tools: Tool[] = [
     {
