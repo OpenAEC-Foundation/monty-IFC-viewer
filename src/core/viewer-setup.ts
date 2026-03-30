@@ -39,8 +39,6 @@ export async function initViewer(
   const camera = viewer.createExtension(CameraController);
   camera.options = {
     ...camera.options,
-    zoomSensitivity: 0.6,
-    damperDecay: 6,
     zoomToCursor: true,
   };
 
