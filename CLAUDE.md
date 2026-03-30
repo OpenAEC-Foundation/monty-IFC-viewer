@@ -219,18 +219,19 @@ git push          # Vercel bouwt en deployt automatisch
 1. **Projecten overview per klant**: Landing page met projectkaarten (zie "Projecten Overview" hieronder)
 2. **Views + Annotaties**: 2D annotaties uit Revit naar viewer (zie "Annotatie-strategie" hieronder)
 3. **Schedules**: Revit schedules tonen in de viewer (DataTable via Speckle API)
-4. **Isoleer/Verberg knoppen in property panel**: Boven het property panel ook Isoleer, Verberg en Reset knoppen (naast rechtermuisklik context menu)
-5. **Maatvoeren mobiel**: Op mobiel opent eerst het property panel bij klik i.p.v. meetactie — UX conflict oplossen
-6. **Filtering**: Category toggle, isolate/hide per categorie
-7. **Renvooi / Legenda**: Interactieve legenda van family types. Klik regel → highlight alle instanties. Bidirectioneel: klik 3D element → renvooiregel licht op. Automatisch opgebouwd uit WorldTree + batch REST API fetch voor family/type info.
-8. **Levering highlighting**: Symbolische krat-objecten in model. Klik krat → highlight alle elementen in die levering via `Levering_ID` parameter. Vereist `Levering_ID` op panelen + kratten in Revit.
-9. **Detail fly-to**: 3D detail-symbolen. Klik → `camera.setCameraView()` naar opgeslagen viewpoint + section box + annotaties laden. Eigen tab "Details & Uitsneden" (hoort niet in legenda). Vereist `detail_view`, camera data, `detail_ref` parameters in Revit.
-10. **BCF**: Topics, viewpoints, import/export
-11. **UI polish**: Betere iconen, loading states, error handling
-12. **Hierarchie tree**: IFC spatial structure sidebar
-13. **Performance**: Mark parser caching (nu batch-fetch bij elke load)
-14. **Self-hosting**: Van Vercel af, hosten op eigen NAS/extern (zie "Projecten Overview" niveau 2/3)
-15. **Commercieel**: Custom domein, branding per klant
+4. ~~**Isoleer/Verberg knoppen in property panel**~~: DONE — zitten nu boven in het property panel
+5. **Maatvoeren mobiel**: Toolbar conflict op touch — [#5](https://github.com/piyton/montyviewer/issues/5)
+6. **Filtering**: Category toggle, isolate/hide per categorie (Mark + Type filter DONE in filter-panel)
+7. **Renvooi / Legenda**: Interactieve element-legenda — [#1](https://github.com/piyton/montyviewer/issues/1)
+8. **Levering highlighting**: Krat-klik → highlight delivery elementen — [#2](https://github.com/piyton/montyviewer/issues/2)
+9. **Detail fly-to**: Detail-symbolen → camera sprong + annotaties — [#3](https://github.com/piyton/montyviewer/issues/3)
+10. **Maatlijst**: Sorteerbare elementenlijst met 2D/3D koppeling — [#4](https://github.com/piyton/montyviewer/issues/4)
+11. **BCF**: Topics, viewpoints, import/export
+12. **UI polish**: Betere iconen, loading states, error handling
+13. **Hierarchie tree**: IFC spatial structure sidebar
+14. **Performance**: Mark parser caching (nu batch-fetch bij elke load)
+15. **Self-hosting**: Van Vercel af, hosten op eigen NAS/extern (zie "Projecten Overview" niveau 2/3)
+16. **Commercieel**: Custom domein, branding per klant
 
 ---
 

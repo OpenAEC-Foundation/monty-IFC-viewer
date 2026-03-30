@@ -115,17 +115,18 @@ Datum inventarisatie: 2026-03-16
 
 #### Selectie & Filtering
 - [ ] Filteren op parameter waardes (dump-revit-ideeen)
-- [ ] Category toggle per IFC type (dump-revit-ideeen, bcftest prototype heeft dit)
-- [ ] **Renvooi / Legenda** — interactieve legenda van family types, bidirectioneel (concept 2026-03-27)
-- [ ] **Levering highlighting** — klik krat-object → highlight alle elementen in die levering (concept 2026-03-27)
-- [ ] **Detail fly-to** — klik detail-symbool → camera sprong + annotaties + bounding box (concept 2026-03-27)
+- [x] Category toggle per type (filter-panel met Mark + Original Type) — DONE 2026-03-27
+- [ ] **Renvooi / Legenda** — interactieve legenda van family types, bidirectioneel — [#1](https://github.com/piyton/montyviewer/issues/1)
+- [ ] **Levering highlighting** — klik krat-object → highlight delivery — [#2](https://github.com/piyton/montyviewer/issues/2)
+- [ ] **Detail fly-to** — klik detail-symbool → camera sprong + annotaties — [#3](https://github.com/piyton/montyviewer/issues/3)
 - [ ] Bij selectie automatisch afmetingen tonen (dump-revit-ideeen)
 - [ ] M² berekening bij selectie (dump-revit-ideeen)
 - [ ] Bij meerdere elementen: calculaties (dump-revit-ideeen)
-- [ ] Isoleer/Verberg knoppen in property panel (naast context menu)
+- [x] Isoleer/Verberg knoppen in property panel — DONE 2026-03-27
 - [ ] Hierarchie tree / spatial structure sidebar
 
 #### Export & Data
+- [ ] **Maatlijst** — sorteerbare elementenlijst met 2D/3D koppeling — [#4](https://github.com/piyton/montyviewer/issues/4)
 - [ ] Excel export van selectie (dump-revit-ideeen)
 - [ ] Schedules tonen (Revit DataTable via Speckle API)
 
@@ -150,7 +151,7 @@ Datum inventarisatie: 2026-03-16
 
 #### Performance & UX
 - [ ] Mark parser caching (nu batch-fetch bij elke load)
-- [ ] Maatvoeren mobiel UX (property panel conflict)
+- [ ] Maatvoeren mobiel UX (toolbar conflict) — [#5](https://github.com/piyton/montyviewer/issues/5)
 - [ ] Betere iconen, loading states, error handling
 - [ ] Keyboard shortcuts (F=zoom model, Delete=verwijder, Escape=deactiveer)
 
