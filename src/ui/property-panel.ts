@@ -11,6 +11,12 @@ export function setPropertyPanelMapping(mapping: PhaseMapping): void {
   _phaseMapping = mapping;
 }
 
+const INFO_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`;
+
+function isMobile(): boolean {
+  return window.innerWidth <= 768;
+}
+
 export function createPropertyPanel(instance: ViewerInstance): HTMLElement {
   const panel = document.createElement("div");
   panel.id = "property-panel";
@@ -69,13 +75,40 @@ export function createPropertyPanel(instance: ViewerInstance): HTMLElement {
   body.className = "pp-body";
   panel.appendChild(body);
 
+  // Mobile info button — floating, shown on element tap
+  const infoBtn = document.createElement("button");
+  infoBtn.id = "mobile-info-btn";
+  infoBtn.className = "hidden";
+  infoBtn.innerHTML = INFO_ICON;
+  document.getElementById("overlay")?.appendChild(infoBtn);
+
   const projectId = new URLSearchParams(window.location.search).get("project") || "";
+
+  // Pending data for deferred panel open on mobile
+  let pendingRaw: Record<string, unknown> | null = null;
+  let pendingMulti = false;
+  let pendingIds: string[] = [];
+
+  function showPanel(): void {
+    panel.classList.remove("hidden");
+    if (pendingMulti) {
+      showMultiSelectPanel(body, projectId, pendingIds);
+    } else if (pendingRaw) {
+      showSingleSelectPanel(body, projectId, pendingRaw);
+    }
+  }
+
+  infoBtn.addEventListener("click", () => {
+    infoBtn.classList.add("hidden");
+    showPanel();
+  });
 
   instance.viewer.on(ViewerEvent.ObjectClicked, (event: SelectionEvent | null) => {
     // Suppress selection when measuring — measurements handle their own clicks
     if (instance.measurements.enabled) return;
     if (!event || event.hits.length === 0) {
       panel.classList.add("hidden");
+      infoBtn.classList.add("hidden");
       return;
     }
 
@@ -84,17 +117,24 @@ export function createPropertyPanel(instance: ViewerInstance): HTMLElement {
 
     if (!raw || typeof raw !== "object") {
       panel.classList.add("hidden");
+      infoBtn.classList.add("hidden");
       return;
     }
 
-    panel.classList.remove("hidden");
-
     // Defer to allow context-menu to update selectedIds first
     queueMicrotask(() => {
-      if (selectedIds.size > 1) {
-        showMultiSelectPanel(body, projectId, Array.from(selectedIds));
+      pendingMulti = selectedIds.size > 1;
+      pendingIds = Array.from(selectedIds);
+      pendingRaw = raw as Record<string, unknown>;
+
+      if (isMobile()) {
+        // Mobile: show info button only, panel opens on tap
+        panel.classList.add("hidden");
+        infoBtn.classList.remove("hidden");
       } else {
-        showSingleSelectPanel(body, projectId, raw);
+        // Desktop: show panel immediately
+        infoBtn.classList.add("hidden");
+        showPanel();
       }
     });
   });
