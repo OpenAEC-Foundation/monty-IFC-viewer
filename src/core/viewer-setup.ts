@@ -43,9 +43,10 @@ export async function initViewer(
     orbitAroundCursor: true,
   };
 
-  // Override touch zoom: bypass Speckle's adjustOrbit (has its own min/max clamping
-  // that ignores our sensitivity). Directly set goalSpherical.radius instead.
-  const orbitControls = (camera as unknown as { _orbitControls: {
+  // Custom touch pinch zoom: proportional to distance (slower when close)
+  // Bypasses Speckle's adjustOrbit which has internal clamping that ignores sensitivity.
+  // Sets goalSpherical.radius directly. Mouse zoom is unaffected.
+  type OrbitInternals = {
     pointers: Array<{ clientX: number; clientY: number }>;
     lastSeparation: number;
     _container: HTMLElement;
@@ -55,31 +56,16 @@ export async function initViewer(
     panPerPixel: number;
     movePan: (dx: number, dy: number) => void;
     touchModeZoom: ((dx: number, dy: number) => void) | null;
-    computeMinMaxRadius: () => void;
-  } })._orbitControls;
+  };
+  const orbitControls = (camera as unknown as { _orbitControls: OrbitInternals })._orbitControls;
 
-  // Debug overlay (temporary)
-  const debugEl = document.createElement("div");
-  debugEl.id = "zoom-debug";
-  debugEl.style.cssText = "position:fixed;bottom:8px;left:8px;background:rgba(0,0,0,0.7);color:#0f0;font:12px monospace;padding:6px 10px;border-radius:6px;z-index:9999;pointer-events:none;";
-  document.body.appendChild(debugEl);
-
-  // Replace touchModeZoom: set radius directly, proportional to current distance
   orbitControls.touchModeZoom = (dx: number, dy: number) => {
-    const currentRadius = orbitControls.spherical.radius;
+    const radius = orbitControls.spherical.radius;
     const sep = orbitControls.twoTouchDistance(orbitControls.pointers[0], orbitControls.pointers[1]);
-    const pinchDelta = (orbitControls.lastSeparation - sep) / orbitControls._container.offsetHeight;
+    const pinch = (orbitControls.lastSeparation - sep) / orbitControls._container.offsetHeight;
     orbitControls.lastSeparation = sep;
-
-    // Radius change = percentage of current radius (closer = smaller absolute step)
-    // pinchDelta ~0.01-0.05 per frame, multiply by radius for proportional zoom
-    const step = pinchDelta * currentRadius * 15.0;
-    const newRadius = Math.max(0.1, currentRadius + step);
-    orbitControls.goalSpherical.radius = newRadius;
-
+    orbitControls.goalSpherical.radius = Math.max(0.1, radius + pinch * radius * 15.0);
     if (orbitControls.panPerPixel > 0) orbitControls.movePan(dx, dy);
-
-    debugEl.textContent = `r=${currentRadius.toFixed(2)} step=${step.toFixed(4)} pinch=${pinchDelta.toFixed(4)}`;
   };
 
   const selection = viewer.createExtension(SelectionExtension);
