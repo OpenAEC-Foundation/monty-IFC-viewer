@@ -3,7 +3,10 @@ import { parseStreamParams, loadStream } from "./core/stream-loader";
 import { createToolbar } from "./ui/toolbar";
 import { createPropertyPanel, setPropertyPanelMapping } from "./ui/property-panel";
 import { createModelPanel } from "./ui/model-panel";
-import { createContextMenu, setContextMenuMapping, setMultiSelectMode } from "./ui/context-menu";
+import {
+  createContextMenu, setContextMenuMapping, setMultiSelectMode,
+  selectedIds, isolateSelected, hideSelected, resetFilters
+} from "./ui/context-menu";
 import { createFilterPanel } from "./ui/filter-panel";
 import { parseMarks, PhaseManager, createTimelineUI } from "./addons/bouwvolgorde";
 import "./style.css";
@@ -68,18 +71,65 @@ async function main(): Promise<void> {
     // Info button for touch devices (property panel toggle)
     leftToolbar.appendChild(infoBtn);
 
-    // Multi-select toggle for touch devices
+    // Multi-select toggle + action menu for touch devices
     if (window.matchMedia("(pointer: coarse)").matches) {
       const multiBtn = document.createElement("button");
       multiBtn.className = "left-tb-btn";
       multiBtn.id = "multi-select-btn";
       multiBtn.title = "Multi-selectie";
       multiBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>`;
+
+      // Action menu (shown on 2nd click when multi-select is active)
+      const actionMenu = document.createElement("div");
+      actionMenu.id = "multi-action-menu";
+      actionMenu.className = "toolbar-submenu hidden";
+
+      const actions = [
+        { label: "+ Toevoegen", action: () => { actionMenu.classList.add("hidden"); } },
+        { label: "− Verwijderen", action: () => {
+          const last = Array.from(selectedIds).pop();
+          if (last) selectedIds.delete(last);
+          actionMenu.classList.add("hidden");
+        }},
+        { label: "Isoleer", action: () => { isolateSelected(); actionMenu.classList.add("hidden"); } },
+        { label: "Verberg", action: () => { hideSelected(); actionMenu.classList.add("hidden"); } },
+        { label: "Reset", action: () => { resetFilters(); actionMenu.classList.add("hidden"); } },
+      ];
+
+      for (const { label, action } of actions) {
+        const btn = document.createElement("button");
+        btn.className = "toolbar-submenu-item";
+        btn.innerHTML = `<span>${label}</span>`;
+        btn.addEventListener("click", (e) => { e.stopPropagation(); action(); });
+        actionMenu.appendChild(btn);
+      }
+
       multiBtn.addEventListener("click", () => {
-        const active = multiBtn.classList.toggle("active");
-        setMultiSelectMode(active);
+        if (multiBtn.classList.contains("active")) {
+          // Already active → show/hide action menu
+          const wasHidden = actionMenu.classList.contains("hidden");
+          actionMenu.classList.toggle("hidden");
+          if (wasHidden) {
+            const rect = multiBtn.getBoundingClientRect();
+            actionMenu.style.top = `${rect.top}px`;
+            actionMenu.style.left = `${rect.right + 6}px`;
+          }
+        } else {
+          // First click → activate multi-select
+          multiBtn.classList.add("active");
+          setMultiSelectMode(true);
+        }
       });
+
+      // Close action menu on outside click
+      document.addEventListener("pointerdown", (e: PointerEvent) => {
+        if (!multiBtn.contains(e.target as Node) && !actionMenu.contains(e.target as Node)) {
+          actionMenu.classList.add("hidden");
+        }
+      });
+
       leftToolbar.appendChild(multiBtn);
+      overlay?.appendChild(actionMenu);
     }
 
     if (models.length > 1) {

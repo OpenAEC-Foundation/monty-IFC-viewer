@@ -39,10 +39,17 @@ export async function initViewer(
   const camera = viewer.createExtension(CameraController);
   camera.options = {
     ...camera.options,
-    zoomSensitivity: 0.5,
     zoomToCursor: true,
     orbitAroundCursor: true,
   };
+
+  // Dynamic zoom sensitivity: normal for mouse, slower for touch pinch
+  container.addEventListener("pointerdown", (e) => {
+    const sensitivity = e.pointerType === "touch" ? 0.3 : 1.0;
+    if (camera.options.zoomSensitivity !== sensitivity) {
+      camera.options = { ...camera.options, zoomSensitivity: sensitivity };
+    }
+  });
 
   const selection = viewer.createExtension(SelectionExtension);
   const filtering = viewer.createExtension(FilteringExtension);

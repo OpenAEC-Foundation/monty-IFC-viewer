@@ -80,10 +80,10 @@ export function createPropertyPanel(instance: ViewerInstance): PropertyPanelResu
   body.className = "pp-body";
   panel.appendChild(body);
 
-  // Touch info button — added to left toolbar, shown on element tap
+  // Touch info button — always visible on touch, in left toolbar
   const infoBtn = document.createElement("button");
   infoBtn.id = "mobile-info-btn";
-  infoBtn.className = "left-tb-btn hidden";
+  infoBtn.className = isTouchDevice() ? "left-tb-btn" : "left-tb-btn hidden";
   infoBtn.title = "Properties";
   infoBtn.innerHTML = INFO_ICON;
 
@@ -93,19 +93,27 @@ export function createPropertyPanel(instance: ViewerInstance): PropertyPanelResu
   let pendingRaw: Record<string, unknown> | null = null;
   let pendingMulti = false;
   let pendingIds: string[] = [];
+  let hasPendingData = false;
 
   function showPanel(): void {
-    panel.classList.remove("hidden");
-    if (pendingMulti) {
+    if (!hasPendingData) {
+      // No selection yet — show empty state
+      body.innerHTML = `<div class="pp-element-header"><span class="pp-element-name" style="opacity:0.5">Tik op een element</span></div>`;
+    } else if (pendingMulti) {
       showMultiSelectPanel(body, projectId, pendingIds);
     } else if (pendingRaw) {
       showSingleSelectPanel(body, projectId, pendingRaw);
     }
+    panel.classList.remove("hidden");
   }
 
+  // Toggle: click info button → open panel, click again → close
   infoBtn.addEventListener("click", () => {
-    infoBtn.classList.add("hidden");
-    showPanel();
+    if (panel.classList.contains("hidden")) {
+      showPanel();
+    } else {
+      panel.classList.add("hidden");
+    }
   });
 
   instance.viewer.on(ViewerEvent.ObjectClicked, (event: SelectionEvent | null) => {
@@ -113,7 +121,6 @@ export function createPropertyPanel(instance: ViewerInstance): PropertyPanelResu
     if (instance.measurements.enabled) return;
     if (!event || event.hits.length === 0) {
       panel.classList.add("hidden");
-      infoBtn.classList.add("hidden");
       return;
     }
 
@@ -122,7 +129,6 @@ export function createPropertyPanel(instance: ViewerInstance): PropertyPanelResu
 
     if (!raw || typeof raw !== "object") {
       panel.classList.add("hidden");
-      infoBtn.classList.add("hidden");
       return;
     }
 
@@ -131,14 +137,13 @@ export function createPropertyPanel(instance: ViewerInstance): PropertyPanelResu
       pendingMulti = selectedIds.size > 1;
       pendingIds = Array.from(selectedIds);
       pendingRaw = raw as Record<string, unknown>;
+      hasPendingData = true;
 
       if (isTouchDevice()) {
-        // Mobile: show info button only, panel opens on tap
+        // Touch: keep panel closed, user opens via info button
         panel.classList.add("hidden");
-        infoBtn.classList.remove("hidden");
       } else {
         // Desktop: show panel immediately
-        infoBtn.classList.add("hidden");
         showPanel();
       }
     });

@@ -65,7 +65,6 @@ export function createToolbar(instance: ViewerInstance): HTMLElement {
         toggleStates["measure-distance"] = true;
         instance.measurements.enabled = true;
         instance.selection.enabled = false;
-        instance.camera.enabled = false;
         instance.measurements.options = { ...instance.measurements.options, type: MeasurementType.POINTTOPOINT, vertexSnap: true };
         measureBtn.classList.add("active");
         measureMenu.classList.add("hidden");
@@ -78,7 +77,6 @@ export function createToolbar(instance: ViewerInstance): HTMLElement {
         toggleStates["measure-perpendicular"] = true;
         instance.measurements.enabled = true;
         instance.selection.enabled = false;
-        instance.camera.enabled = false;
         instance.measurements.options = { ...instance.measurements.options, type: MeasurementType.PERPENDICULAR, vertexSnap: true };
         measureBtn.classList.add("active");
         measureMenu.classList.add("hidden");
@@ -91,7 +89,6 @@ export function createToolbar(instance: ViewerInstance): HTMLElement {
         toggleStates["measure-area"] = true;
         instance.measurements.enabled = true;
         instance.selection.enabled = false;
-        instance.camera.enabled = false;
         instance.measurements.options = { ...instance.measurements.options, type: MeasurementType.AREA, vertexSnap: true };
         measureBtn.classList.add("active");
         measureMenu.classList.add("hidden");
@@ -103,7 +100,6 @@ export function createToolbar(instance: ViewerInstance): HTMLElement {
         deactivateMeasureModes("");
         instance.measurements.enabled = false;
         instance.selection.enabled = true;
-        instance.camera.enabled = true;
         instance.measurements.clearMeasurements();
         measureBtn.classList.remove("active");
         measureMenu.classList.add("hidden");
@@ -140,6 +136,21 @@ export function createToolbar(instance: ViewerInstance): HTMLElement {
   // Append submenu to overlay (not toolbar) — toolbar has backdrop-filter
   // which breaks position:fixed, and overflow-x:auto on mobile clips it
   document.getElementById("overlay")?.appendChild(measureMenu);
+
+  // Touch measurement fix: dispatch synthetic pointermove before pointerdown
+  // to prime MeasurementsExtension's _sceneHit (required for point placement)
+  document.addEventListener("pointerdown", (e: PointerEvent) => {
+    if (!instance.measurements.enabled) return;
+    if (e.pointerType !== "touch") return;
+    const move = new PointerEvent("pointermove", {
+      clientX: e.clientX,
+      clientY: e.clientY,
+      pointerId: e.pointerId,
+      pointerType: e.pointerType,
+      bubbles: true,
+    });
+    e.target?.dispatchEvent(move);
+  }, { capture: true });
 
   const tools: Tool[] = [
     {
@@ -185,7 +196,6 @@ export function createToolbar(instance: ViewerInstance): HTMLElement {
         instance.filtering.resetFilters();
         instance.measurements.enabled = false;
         instance.selection.enabled = true;
-        instance.camera.enabled = true;
         instance.measurements.clearMeasurements();
         instance.sections.enabled = false;
         instance.sections.visible = false;
