@@ -39,6 +39,7 @@ export async function initViewer(
   const camera = viewer.createExtension(CameraController);
   camera.options = {
     ...camera.options,
+    zoomSensitivity: 0.8,
     zoomToCursor: true,
     orbitAroundCursor: true,
   };
