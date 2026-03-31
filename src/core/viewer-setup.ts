@@ -64,7 +64,9 @@ export async function initViewer(
     const sep = orbitControls.twoTouchDistance(orbitControls.pointers[0], orbitControls.pointers[1]);
     const pinch = (orbitControls.lastSeparation - sep) / orbitControls._container.offsetHeight;
     orbitControls.lastSeparation = sep;
-    orbitControls.goalSpherical.radius = Math.max(0.1, radius + pinch * radius * 15.0);
+    // Multiplier scales with distance: far (r>10) = faster, close (r<2) = slower
+    const mult = radius > 10 ? 25.0 : radius > 3 ? 15.0 : 8.0;
+    orbitControls.goalSpherical.radius = Math.max(0.1, radius + pinch * radius * mult);
     if (orbitControls.panPerPixel > 0) orbitControls.movePan(dx, dy);
   };
 
@@ -75,49 +77,107 @@ export async function initViewer(
   const measurements = viewer.createExtension(MeasurementsExtension);
   measurements.options = { ...measurements.options, vertexSnap: true };
 
-  // Override snap: vertex snap radius 50px (default 10px) so vertices are dominant
-  // Speckle's snap() projects face vertices to screen, snaps if within threshold.
-  // We increase the threshold so vertex snap wins over face hit at greater distance.
+  // Override snap: vertex > edge > face hierarchy with large thresholds
+  type NDCPoint = { x: number; y: number; z: number; distanceTo: (b: NDCPoint) => number; unproject: (cam: unknown) => unknown };
   type SnapInternals = {
     renderer: {
       renderingCamera: unknown;
       NDCToScreen: (x: number, y: number) => { x: number; y: number };
     };
-    screenBuff0: { set: (x: number, y: number) => void; distanceTo: (b: unknown) => number };
-    screenBuff1: { set: (x: number, y: number) => void };
   };
   const measInternals = measurements as unknown as SnapInternals;
-  const originalSnap = (measurements as unknown as { snap: (...args: unknown[]) => void }).snap.bind(measurements);
+
+  /** Closest point on line segment AB to point P (all in screen coords) */
+  function closestPointOnSegment(
+    ax: number, ay: number, bx: number, by: number, px: number, py: number
+  ): { x: number; y: number; t: number } {
+    const dx = bx - ax, dy = by - ay;
+    const len2 = dx * dx + dy * dy;
+    if (len2 === 0) return { x: ax, y: ay, t: 0 };
+    const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / len2));
+    return { x: ax + t * dx, y: ay + t * dy, t };
+  }
 
   (measurements as unknown as { snap: (intersection: {
-    point: { project: (cam: unknown) => { x: number; y: number; z: number; distanceTo: (b: unknown) => number; unproject: (cam: unknown) => unknown };  };
+    point: { project: (cam: unknown) => NDCPoint };
     face: { a: number; b: number; c: number; normal: unknown };
-    batchObject: { accelerationStructure: { getVertexAtIndex: (i: number) => { project: (cam: unknown) => { x: number; y: number; z: number; distanceTo: (b: unknown) => number; unproject: (cam: unknown) => unknown } } } };
+    batchObject: { accelerationStructure: { getVertexAtIndex: (i: number) => { project: (cam: unknown) => NDCPoint } } };
   }, outPoint: { copy: (v: unknown) => void }, outNormal: { copy: (v: unknown) => void }) => void }).snap = (intersection, outPoint, outNormal) => {
     const cam = measInternals.renderer.renderingCamera;
     if (!cam) return;
 
-    const vA = intersection.batchObject.accelerationStructure.getVertexAtIndex(intersection.face.a).project(cam);
-    const vB = intersection.batchObject.accelerationStructure.getVertexAtIndex(intersection.face.b).project(cam);
-    const vC = intersection.batchObject.accelerationStructure.getVertexAtIndex(intersection.face.c).project(cam);
+    const accel = intersection.batchObject.accelerationStructure;
+    const ndcA = accel.getVertexAtIndex(intersection.face.a).project(cam);
+    const ndcB = accel.getVertexAtIndex(intersection.face.b).project(cam);
+    const ndcC = accel.getVertexAtIndex(intersection.face.c).project(cam);
     const hitNDC = intersection.point.project(cam);
 
-    const verts = [vA, vB, vC].sort((a, b) => hitNDC.distanceTo(a) - hitNDC.distanceTo(b));
-    const closest = verts[0];
-    const closestScreen = measInternals.renderer.NDCToScreen(closest.x, closest.y);
-    const hitScreen = measInternals.renderer.NDCToScreen(hitNDC.x, hitNDC.y);
+    const toScreen = measInternals.renderer.NDCToScreen.bind(measInternals.renderer);
+    const sA = toScreen(ndcA.x, ndcA.y);
+    const sB = toScreen(ndcB.x, ndcB.y);
+    const sC = toScreen(ndcC.x, ndcC.y);
+    const sHit = toScreen(hitNDC.x, hitNDC.y);
+    const dpr = window.devicePixelRatio;
 
-    measInternals.screenBuff0.set(closestScreen.x, closestScreen.y);
-    measInternals.screenBuff1.set(hitScreen.x, hitScreen.y);
+    // 1. Vertex snap (50px threshold) — highest priority
+    const verts = [
+      { ndc: ndcA, screen: sA },
+      { ndc: ndcB, screen: sB },
+      { ndc: ndcC, screen: sC },
+    ].sort((a, b) => {
+      const da = Math.hypot(a.screen.x - sHit.x, a.screen.y - sHit.y);
+      const db = Math.hypot(b.screen.x - sHit.x, b.screen.y - sHit.y);
+      return da - db;
+    });
 
-    // 50px threshold (vs Speckle's 10px) — vertex snap is dominant
-    if (measInternals.screenBuff0.distanceTo(measInternals.screenBuff1) < 50 * window.devicePixelRatio) {
-      outPoint.copy(closest.unproject(cam));
+    const vertDist = Math.hypot(verts[0].screen.x - sHit.x, verts[0].screen.y - sHit.y);
+    if (vertDist < 50 * dpr) {
+      outPoint.copy(verts[0].ndc.unproject(cam));
       outNormal.copy(intersection.face.normal);
-    } else {
-      // Fall back to Speckle default (face point)
-      originalSnap(intersection, outPoint, outNormal);
+      return;
     }
+
+    // 2. Edge snap (30px threshold) — second priority
+    const edges: Array<{ a: NDCPoint; b: NDCPoint; sA: { x: number; y: number }; sB: { x: number; y: number } }> = [
+      { a: ndcA, b: ndcB, sA, sB },
+      { a: ndcB, b: ndcC, sA: sB, sB: sC },
+      { a: ndcC, b: ndcA, sA: sC, sB: sA },
+    ];
+
+    let bestEdgeDist = Infinity;
+    let bestEdgePoint: NDCPoint | null = null;
+    let bestT = 0;
+    let bestEdge: typeof edges[0] | null = null;
+
+    for (const edge of edges) {
+      const cp = closestPointOnSegment(edge.sA.x, edge.sA.y, edge.sB.x, edge.sB.y, sHit.x, sHit.y);
+      const dist = Math.hypot(cp.x - sHit.x, cp.y - sHit.y);
+      if (dist < bestEdgeDist) {
+        bestEdgeDist = dist;
+        bestT = cp.t;
+        bestEdge = edge;
+      }
+    }
+
+    if (bestEdge && bestEdgeDist < 30 * dpr) {
+      // Interpolate in NDC space, then unproject to get 3D point on edge
+      const edgeNDC = {
+        x: bestEdge.a.x + bestT * (bestEdge.b.x - bestEdge.a.x),
+        y: bestEdge.a.y + bestT * (bestEdge.b.y - bestEdge.a.y),
+        z: bestEdge.a.z + bestT * (bestEdge.b.z - bestEdge.a.z),
+      };
+      // Use vertex A's unproject by creating an interpolated point
+      // We need a Three.js Vector3 — borrow from ndcA
+      const pointOnEdge = accel.getVertexAtIndex(intersection.face.a).project(cam);
+      pointOnEdge.x = edgeNDC.x;
+      pointOnEdge.y = edgeNDC.y;
+      pointOnEdge.z = edgeNDC.z;
+      outPoint.copy(pointOnEdge.unproject(cam));
+      outNormal.copy(intersection.face.normal);
+      return;
+    }
+
+    // 3. Face point — lowest priority (no snap, use intersection point)
   };
 
   const explode = viewer.createExtension(ExplodeExtension);
