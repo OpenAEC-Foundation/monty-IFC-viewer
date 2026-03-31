@@ -3,7 +3,7 @@ import { parseStreamParams, loadStream } from "./core/stream-loader";
 import { createToolbar } from "./ui/toolbar";
 import { createPropertyPanel, setPropertyPanelMapping } from "./ui/property-panel";
 import { createModelPanel } from "./ui/model-panel";
-import { createContextMenu, setContextMenuMapping } from "./ui/context-menu";
+import { createContextMenu, setContextMenuMapping, setMultiSelectMode } from "./ui/context-menu";
 import { createFilterPanel } from "./ui/filter-panel";
 import { parseMarks, PhaseManager, createTimelineUI } from "./addons/bouwvolgorde";
 import "./style.css";
@@ -39,7 +39,7 @@ async function main(): Promise<void> {
   const overlay = document.getElementById("overlay");
   const toolbar = createToolbar(instance);
   overlay?.appendChild(toolbar);
-  const propertyPanel = createPropertyPanel(instance);
+  const { panel: propertyPanel, infoBtn } = createPropertyPanel(instance);
   overlay?.appendChild(propertyPanel);
   const contextMenu = createContextMenu(instance);
   overlay?.appendChild(contextMenu);
@@ -64,6 +64,23 @@ async function main(): Promise<void> {
     // Left toolbar (model toggle + filter button in one bar)
     const leftToolbar = document.createElement("div");
     leftToolbar.id = "left-toolbar";
+
+    // Info button for touch devices (property panel toggle)
+    leftToolbar.appendChild(infoBtn);
+
+    // Multi-select toggle for touch devices
+    if (window.matchMedia("(pointer: coarse)").matches) {
+      const multiBtn = document.createElement("button");
+      multiBtn.className = "left-tb-btn";
+      multiBtn.id = "multi-select-btn";
+      multiBtn.title = "Multi-selectie";
+      multiBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>`;
+      multiBtn.addEventListener("click", () => {
+        const active = multiBtn.classList.toggle("active");
+        setMultiSelectMode(active);
+      });
+      leftToolbar.appendChild(multiBtn);
+    }
 
     if (models.length > 1) {
       const { button, panel } = createModelPanel(instance.viewer, models);

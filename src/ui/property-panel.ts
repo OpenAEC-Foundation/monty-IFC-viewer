@@ -13,11 +13,16 @@ export function setPropertyPanelMapping(mapping: PhaseMapping): void {
 
 const INFO_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`;
 
-function isMobile(): boolean {
-  return window.innerWidth <= 768;
+function isTouchDevice(): boolean {
+  return window.matchMedia("(pointer: coarse)").matches;
 }
 
-export function createPropertyPanel(instance: ViewerInstance): HTMLElement {
+export interface PropertyPanelResult {
+  panel: HTMLElement;
+  infoBtn: HTMLElement;
+}
+
+export function createPropertyPanel(instance: ViewerInstance): PropertyPanelResult {
   const panel = document.createElement("div");
   panel.id = "property-panel";
   panel.classList.add("hidden");
@@ -75,12 +80,12 @@ export function createPropertyPanel(instance: ViewerInstance): HTMLElement {
   body.className = "pp-body";
   panel.appendChild(body);
 
-  // Mobile info button — floating, shown on element tap
+  // Touch info button — added to left toolbar, shown on element tap
   const infoBtn = document.createElement("button");
   infoBtn.id = "mobile-info-btn";
-  infoBtn.className = "hidden";
+  infoBtn.className = "left-tb-btn hidden";
+  infoBtn.title = "Properties";
   infoBtn.innerHTML = INFO_ICON;
-  document.getElementById("overlay")?.appendChild(infoBtn);
 
   const projectId = new URLSearchParams(window.location.search).get("project") || "";
 
@@ -127,7 +132,7 @@ export function createPropertyPanel(instance: ViewerInstance): HTMLElement {
       pendingIds = Array.from(selectedIds);
       pendingRaw = raw as Record<string, unknown>;
 
-      if (isMobile()) {
+      if (isTouchDevice()) {
         // Mobile: show info button only, panel opens on tap
         panel.classList.add("hidden");
         infoBtn.classList.remove("hidden");
@@ -139,7 +144,7 @@ export function createPropertyPanel(instance: ViewerInstance): HTMLElement {
     });
   });
 
-  return panel;
+  return { panel, infoBtn };
 }
 
 /** Show properties for a single element */

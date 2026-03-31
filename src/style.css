@@ -59,6 +59,10 @@ body {
   position: absolute;
   top: 0;
   left: 0;
+  /* Prevent long-press text selection on touch devices */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 #overlay {
@@ -69,6 +73,9 @@ body {
   height: 100%;
   pointer-events: none;
   z-index: 10;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 /* Loading indicator */
@@ -274,33 +281,13 @@ body {
   transform: translateX(20px);
 }
 
-/* Mobile info button — tap to open property panel */
+/* Touch info button — in left toolbar, shown on element tap */
 #mobile-info-btn {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: 1px solid var(--border-subtle);
-  background: var(--bg-toolbar);
-  backdrop-filter: blur(10px);
   color: var(--accent-teal, #45b6a8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  pointer-events: auto;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  transition: opacity 0.15s, transform 0.15s;
-  z-index: 20;
 }
 
 #mobile-info-btn.hidden {
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(-50%) scale(0.8);
+  display: none;
 }
 
 .pp-header {
@@ -738,6 +725,11 @@ body {
 .left-tb-btn:hover {
   background: var(--hover-bg);
   border-color: var(--border-subtle);
+}
+
+.left-tb-btn.active {
+  background: var(--active-bg);
+  border-color: var(--accent-teal);
 }
 
 .left-tb-btn svg {

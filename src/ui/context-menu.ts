@@ -10,6 +10,13 @@ export const selectedIds = new Set<string>();
 /** Whether filters are currently active (isolate/hide) */
 export let hasActiveFilters = false;
 
+/** Touch multi-select mode (replaces Ctrl/Shift on touch devices) */
+export let multiSelectMode = false;
+
+export function setMultiSelectMode(enabled: boolean): void {
+  multiSelectMode = enabled;
+}
+
 let _mapping: PhaseMapping | null = null;
 let _instance: ViewerInstance | null = null;
 
@@ -117,7 +124,8 @@ export function createContextMenu(instance: ViewerInstance): HTMLElement {
     // Ignore right-clicks — don't change selection on context menu
     if (e && e.button === 2) return;
 
-    if (e && (e.ctrlKey || e.shiftKey || e.metaKey)) {
+    const isMulti = multiSelectMode || (e && (e.ctrlKey || e.shiftKey || e.metaKey));
+    if (isMulti) {
       // Multi-select: toggle element
       if (selectedIds.has(raw.id)) {
         selectedIds.delete(raw.id);
