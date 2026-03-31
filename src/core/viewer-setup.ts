@@ -74,6 +74,52 @@ export async function initViewer(
   viewer.createExtension(SectionOutlines);
   const measurements = viewer.createExtension(MeasurementsExtension);
   measurements.options = { ...measurements.options, vertexSnap: true };
+
+  // Override snap: vertex snap radius 50px (default 10px) so vertices are dominant
+  // Speckle's snap() projects face vertices to screen, snaps if within threshold.
+  // We increase the threshold so vertex snap wins over face hit at greater distance.
+  type SnapInternals = {
+    renderer: {
+      renderingCamera: unknown;
+      NDCToScreen: (x: number, y: number) => { x: number; y: number };
+    };
+    screenBuff0: { set: (x: number, y: number) => void; distanceTo: (b: unknown) => number };
+    screenBuff1: { set: (x: number, y: number) => void };
+  };
+  const measInternals = measurements as unknown as SnapInternals;
+  const originalSnap = (measurements as unknown as { snap: (...args: unknown[]) => void }).snap.bind(measurements);
+
+  (measurements as unknown as { snap: (intersection: {
+    point: { project: (cam: unknown) => { x: number; y: number; z: number; distanceTo: (b: unknown) => number; unproject: (cam: unknown) => unknown };  };
+    face: { a: number; b: number; c: number; normal: unknown };
+    batchObject: { accelerationStructure: { getVertexAtIndex: (i: number) => { project: (cam: unknown) => { x: number; y: number; z: number; distanceTo: (b: unknown) => number; unproject: (cam: unknown) => unknown } } } };
+  }, outPoint: { copy: (v: unknown) => void }, outNormal: { copy: (v: unknown) => void }) => void }).snap = (intersection, outPoint, outNormal) => {
+    const cam = measInternals.renderer.renderingCamera;
+    if (!cam) return;
+
+    const vA = intersection.batchObject.accelerationStructure.getVertexAtIndex(intersection.face.a).project(cam);
+    const vB = intersection.batchObject.accelerationStructure.getVertexAtIndex(intersection.face.b).project(cam);
+    const vC = intersection.batchObject.accelerationStructure.getVertexAtIndex(intersection.face.c).project(cam);
+    const hitNDC = intersection.point.project(cam);
+
+    const verts = [vA, vB, vC].sort((a, b) => hitNDC.distanceTo(a) - hitNDC.distanceTo(b));
+    const closest = verts[0];
+    const closestScreen = measInternals.renderer.NDCToScreen(closest.x, closest.y);
+    const hitScreen = measInternals.renderer.NDCToScreen(hitNDC.x, hitNDC.y);
+
+    measInternals.screenBuff0.set(closestScreen.x, closestScreen.y);
+    measInternals.screenBuff1.set(hitScreen.x, hitScreen.y);
+
+    // 50px threshold (vs Speckle's 10px) — vertex snap is dominant
+    if (measInternals.screenBuff0.distanceTo(measInternals.screenBuff1) < 50 * window.devicePixelRatio) {
+      outPoint.copy(closest.unproject(cam));
+      outNormal.copy(intersection.face.normal);
+    } else {
+      // Fall back to Speckle default (face point)
+      originalSnap(intersection, outPoint, outNormal);
+    }
+  };
+
   const explode = viewer.createExtension(ExplodeExtension);
 
   return { viewer, camera, selection, filtering, measurements, sections, explode };

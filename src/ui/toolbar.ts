@@ -57,42 +57,28 @@ export function createToolbar(instance: ViewerInstance): HTMLElement {
   measureMenu.className = "toolbar-submenu hidden";
 
   interface SubItem { id: string; icon: string; label: string; onClick: () => void }
+  function activateMeasureMode(mode: string, type: number): void {
+    deactivateMeasureModes("");
+    toggleStates[mode] = true;
+    instance.measurements.enabled = true;
+    instance.selection.enabled = false;
+    instance.measurements.options = { ...instance.measurements.options, type, vertexSnap: true };
+    measureBtn.classList.add("active");
+    // Keep submenu open while measuring (easy access to clear)
+  }
+
   const measureItems: SubItem[] = [
     {
       id: "measure-distance", icon: ICONS.measureDistance, label: "Afstand",
-      onClick: () => {
-        deactivateMeasureModes("");
-        toggleStates["measure-distance"] = true;
-        instance.measurements.enabled = true;
-        instance.selection.enabled = false;
-        instance.measurements.options = { ...instance.measurements.options, type: MeasurementType.POINTTOPOINT, vertexSnap: true };
-        measureBtn.classList.add("active");
-        measureMenu.classList.add("hidden");
-      },
+      onClick: () => activateMeasureMode("measure-distance", MeasurementType.POINTTOPOINT),
     },
     {
       id: "measure-perpendicular", icon: ICONS.measurePerpendicular, label: "Loodrecht",
-      onClick: () => {
-        deactivateMeasureModes("");
-        toggleStates["measure-perpendicular"] = true;
-        instance.measurements.enabled = true;
-        instance.selection.enabled = false;
-        instance.measurements.options = { ...instance.measurements.options, type: MeasurementType.PERPENDICULAR, vertexSnap: true };
-        measureBtn.classList.add("active");
-        measureMenu.classList.add("hidden");
-      },
+      onClick: () => activateMeasureMode("measure-perpendicular", MeasurementType.PERPENDICULAR),
     },
     {
       id: "measure-area", icon: ICONS.measureArea, label: "Oppervlakte",
-      onClick: () => {
-        deactivateMeasureModes("");
-        toggleStates["measure-area"] = true;
-        instance.measurements.enabled = true;
-        instance.selection.enabled = false;
-        instance.measurements.options = { ...instance.measurements.options, type: MeasurementType.AREA, vertexSnap: true };
-        measureBtn.classList.add("active");
-        measureMenu.classList.add("hidden");
-      },
+      onClick: () => activateMeasureMode("measure-area", MeasurementType.AREA),
     },
     {
       id: "measure-clear", icon: ICONS.delete, label: "Wissen",
@@ -116,17 +102,23 @@ export function createToolbar(instance: ViewerInstance): HTMLElement {
   }
 
   measureBtn.addEventListener("click", () => {
-    const wasHidden = measureMenu.classList.contains("hidden");
-    measureMenu.classList.toggle("hidden");
-    if (wasHidden) {
+    if (instance.measurements.enabled) {
+      // Already measuring → toggle submenu visibility
+      measureMenu.classList.toggle("hidden");
+    } else {
+      // Not measuring → open submenu
+      measureMenu.classList.remove("hidden");
+    }
+    if (!measureMenu.classList.contains("hidden")) {
       const rect = measureBtn.getBoundingClientRect();
       measureMenu.style.top = `${rect.bottom + 6}px`;
       measureMenu.style.left = `${rect.left}px`;
     }
   });
 
-  // Close submenu on click outside (pointerdown works for both mouse and touch)
+  // Close submenu on click outside (but NOT while measuring — keep it open)
   document.addEventListener("pointerdown", (e: PointerEvent) => {
+    if (instance.measurements.enabled) return;
     if (!measureBtn.contains(e.target as Node) && !measureMenu.contains(e.target as Node)) {
       measureMenu.classList.add("hidden");
     }
