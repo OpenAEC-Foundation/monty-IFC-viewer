@@ -43,21 +43,30 @@ export async function initViewer(
     orbitAroundCursor: true,
   };
 
-  // Dynamic zoom: mouse = 1.0, touch = distance-based (logarithmic)
+  // Dynamic zoom: mouse = default, touch = distance-based (logarithmic)
+  // Access orbit controls directly for reliable runtime updates
+  const orbitControls = (camera as unknown as { _orbitControls: {
+    _options: { zoomSensitivity: number };
+  } })._orbitControls;
+
   function touchZoomSensitivity(): number {
     const dist = camera.getPosition().distanceTo(camera.getTarget());
-    // Logarithmic scale: slows down dramatically when close
-    // dist=100 → 0.35, dist=10 → 0.18, dist=1 → 0.01, dist=0.1 → 0.0
-    return Math.max(0.01, Math.min(0.35, Math.log10(Math.max(dist, 0.1)) * 0.17));
+    // Logarithmic: dist=100→0.35, dist=10→0.18, dist=1→0.01
+    const s = Math.max(0.01, Math.min(0.35, Math.log10(Math.max(dist, 0.1)) * 0.17));
+    console.log(`zoom: dist=${dist.toFixed(1)} sensitivity=${s.toFixed(3)}`);
+    return s;
   }
 
   container.addEventListener("pointerdown", (e) => {
-    const s = e.pointerType === "touch" ? touchZoomSensitivity() : 1.0;
-    camera.options = { ...camera.options, zoomSensitivity: s };
+    if (e.pointerType === "touch") {
+      orbitControls._options.zoomSensitivity = touchZoomSensitivity();
+    } else {
+      orbitControls._options.zoomSensitivity = 1.0;
+    }
   });
 
   container.addEventListener("touchmove", () => {
-    camera.options = { ...camera.options, zoomSensitivity: touchZoomSensitivity() };
+    orbitControls._options.zoomSensitivity = touchZoomSensitivity();
   }, { passive: true });
 
   const selection = viewer.createExtension(SelectionExtension);
