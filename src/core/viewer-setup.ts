@@ -43,13 +43,29 @@ export async function initViewer(
     orbitAroundCursor: true,
   };
 
-  // Dynamic zoom sensitivity: normal for mouse, slower for touch pinch
+  // Dynamic zoom sensitivity: normal for mouse, distance-based for touch
+  let isTouch = false;
   container.addEventListener("pointerdown", (e) => {
-    const sensitivity = e.pointerType === "touch" ? 0.3 : 1.0;
-    if (camera.options.zoomSensitivity !== sensitivity) {
-      camera.options = { ...camera.options, zoomSensitivity: sensitivity };
-    }
+    isTouch = e.pointerType === "touch";
   });
+
+  // Gradient zoom for touch: slower when closer to target
+  function updateTouchZoomSensitivity(): void {
+    requestAnimationFrame(updateTouchZoomSensitivity);
+    if (!isTouch) {
+      if (camera.options.zoomSensitivity !== 1.0) {
+        camera.options = { ...camera.options, zoomSensitivity: 1.0 };
+      }
+      return;
+    }
+    const pos = camera.getPosition();
+    const target = camera.getTarget();
+    const dist = pos.distanceTo(target);
+    // Scale: far (>50) = 0.3, close (<5) = 0.05, gradient between
+    const sensitivity = Math.max(0.05, Math.min(0.3, dist * 0.006));
+    camera.options = { ...camera.options, zoomSensitivity: sensitivity };
+  }
+  requestAnimationFrame(updateTouchZoomSensitivity);
 
   const selection = viewer.createExtension(SelectionExtension);
   const filtering = viewer.createExtension(FilteringExtension);

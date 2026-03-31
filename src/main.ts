@@ -71,7 +71,7 @@ async function main(): Promise<void> {
     // Info button for touch devices (property panel toggle)
     leftToolbar.appendChild(infoBtn);
 
-    // Multi-select toggle + action menu for touch devices
+    // Multi-select toggle + action panel for touch devices
     if (window.matchMedia("(pointer: coarse)").matches) {
       const multiBtn = document.createElement("button");
       multiBtn.className = "left-tb-btn";
@@ -79,57 +79,75 @@ async function main(): Promise<void> {
       multiBtn.title = "Multi-selectie";
       multiBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>`;
 
-      // Action menu (shown on 2nd click when multi-select is active)
-      const actionMenu = document.createElement("div");
-      actionMenu.id = "multi-action-menu";
-      actionMenu.className = "toolbar-submenu hidden";
+      // Side panel (like filter panel)
+      const msPanel = document.createElement("div");
+      msPanel.id = "multi-select-panel";
+      msPanel.classList.add("hidden");
 
-      const actions = [
-        { label: "+ Toevoegen", action: () => { actionMenu.classList.add("hidden"); } },
-        { label: "− Verwijderen", action: () => {
+      const msHeader = document.createElement("div");
+      msHeader.className = "mp-header";
+      msHeader.innerHTML = `<span class="mp-title">Multi-selectie</span>`;
+      const msClose = document.createElement("button");
+      msClose.className = "mp-close";
+      msClose.innerHTML = "&times;";
+      msClose.addEventListener("click", () => {
+        multiBtn.classList.remove("active");
+        setMultiSelectMode(false);
+        msPanel.classList.add("hidden");
+      });
+      msHeader.appendChild(msClose);
+      msPanel.appendChild(msHeader);
+
+      const msBody = document.createElement("div");
+      msBody.className = "ms-body";
+
+      const ICONS = {
+        add: `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="10" y1="4" x2="10" y2="16"/><line x1="4" y1="10" x2="16" y2="10"/></svg>`,
+        remove: `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="4" y1="10" x2="16" y2="10"/></svg>`,
+        isolate: `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18"><circle cx="10" cy="10" r="7"/><circle cx="10" cy="10" r="3"/></svg>`,
+        hide: `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18"><path d="M3 10s3-6 7-6 7 6 7 6-3 6-7 6-7-6-7-6z"/><line x1="4" y1="16" x2="16" y2="4"/></svg>`,
+        reset: `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18"><path d="M3 10a7 7 0 0 1 12.9-3.8"/><path d="M17 10a7 7 0 0 1-12.9 3.8"/><polyline points="3 4 3 10 9 10"/></svg>`,
+      };
+
+      const msActions = [
+        { icon: ICONS.add, label: "Toevoegen", action: () => { /* multi-select stays on, just tap elements */ } },
+        { icon: ICONS.remove, label: "Verwijderen", action: () => {
           const last = Array.from(selectedIds).pop();
-          if (last) selectedIds.delete(last);
-          actionMenu.classList.add("hidden");
+          if (last) { selectedIds.delete(last); instance.viewer.requestRender(); }
         }},
-        { label: "Isoleer", action: () => { isolateSelected(); actionMenu.classList.add("hidden"); } },
-        { label: "Verberg", action: () => { hideSelected(); actionMenu.classList.add("hidden"); } },
-        { label: "Reset", action: () => { resetFilters(); actionMenu.classList.add("hidden"); } },
+        { icon: ICONS.isolate, label: "Isoleer", action: () => isolateSelected() },
+        { icon: ICONS.hide, label: "Verberg", action: () => hideSelected() },
+        { icon: ICONS.reset, label: "Reset", action: () => resetFilters() },
       ];
 
-      for (const { label, action } of actions) {
+      for (const { icon, label, action } of msActions) {
         const btn = document.createElement("button");
-        btn.className = "toolbar-submenu-item";
-        btn.innerHTML = `<span>${label}</span>`;
-        btn.addEventListener("click", (e) => { e.stopPropagation(); action(); });
-        actionMenu.appendChild(btn);
+        btn.className = "ms-action-btn";
+        btn.innerHTML = `${icon}<span>${label}</span>`;
+        btn.addEventListener("click", action);
+        msBody.appendChild(btn);
       }
+
+      msPanel.appendChild(msBody);
 
       multiBtn.addEventListener("click", () => {
         if (multiBtn.classList.contains("active")) {
-          // Already active → show/hide action menu
-          const wasHidden = actionMenu.classList.contains("hidden");
-          actionMenu.classList.toggle("hidden");
-          if (wasHidden) {
-            const rect = multiBtn.getBoundingClientRect();
-            actionMenu.style.top = `${rect.top}px`;
-            actionMenu.style.left = `${rect.right + 6}px`;
-          }
+          // Deactivate multi-select
+          multiBtn.classList.remove("active");
+          setMultiSelectMode(false);
+          msPanel.classList.add("hidden");
         } else {
-          // First click → activate multi-select
+          // Activate multi-select + show panel
           multiBtn.classList.add("active");
           setMultiSelectMode(true);
-        }
-      });
-
-      // Close action menu on outside click
-      document.addEventListener("pointerdown", (e: PointerEvent) => {
-        if (!multiBtn.contains(e.target as Node) && !actionMenu.contains(e.target as Node)) {
-          actionMenu.classList.add("hidden");
+          document.getElementById("model-panel")?.classList.add("hidden");
+          document.getElementById("filter-panel")?.classList.add("hidden");
+          msPanel.classList.remove("hidden");
         }
       });
 
       leftToolbar.appendChild(multiBtn);
-      overlay?.appendChild(actionMenu);
+      overlay?.appendChild(msPanel);
     }
 
     if (models.length > 1) {
