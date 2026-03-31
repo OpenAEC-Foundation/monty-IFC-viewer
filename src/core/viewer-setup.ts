@@ -73,7 +73,7 @@ export async function initViewer(
 
     // Radius change = percentage of current radius (closer = smaller absolute step)
     // pinchDelta ~0.01-0.05 per frame, multiply by radius for proportional zoom
-    const step = pinchDelta * currentRadius * 3.0;
+    const step = pinchDelta * currentRadius * 15.0;
     const newRadius = Math.max(0.1, currentRadius + step);
     orbitControls.goalSpherical.radius = newRadius;
 
