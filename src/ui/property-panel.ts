@@ -83,7 +83,7 @@ export function createPropertyPanel(instance: ViewerInstance): PropertyPanelResu
   // Touch info button — always visible on touch, in left toolbar
   const infoBtn = document.createElement("button");
   infoBtn.id = "mobile-info-btn";
-  infoBtn.className = isTouchDevice() ? "left-tb-btn" : "left-tb-btn hidden";
+  infoBtn.className = "left-tb-btn";
   infoBtn.title = "Properties";
   infoBtn.innerHTML = INFO_ICON;
 

@@ -71,8 +71,8 @@ async function main(): Promise<void> {
     // Info button for touch devices (property panel toggle)
     leftToolbar.appendChild(infoBtn);
 
-    // Multi-select toggle + action panel for touch devices
-    if (window.matchMedia("(pointer: coarse)").matches) {
+    // Multi-select toggle + action panel
+    {
       const multiBtn = document.createElement("button");
       multiBtn.className = "left-tb-btn";
       multiBtn.id = "multi-select-btn";
