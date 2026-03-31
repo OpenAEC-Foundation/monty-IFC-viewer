@@ -17,6 +17,24 @@ export function setMultiSelectMode(enabled: boolean): void {
   multiSelectMode = enabled;
 }
 
+/** Remove last selected element and update highlight */
+export function removeLastSelected(): void {
+  const last = Array.from(selectedIds).pop();
+  if (!last) return;
+  selectedIds.delete(last);
+  if (_instance) {
+    if (selectedIds.size === 0) {
+      _instance.filtering.removeUserObjectColors();
+    } else {
+      const ids = getTargetIds();
+      _instance.filtering.setUserObjectColors([
+        { objectIds: ids, color: SELECTION_COLOR },
+      ]);
+    }
+    _instance.viewer.requestRender();
+  }
+}
+
 let _mapping: PhaseMapping | null = null;
 let _instance: ViewerInstance | null = null;
 

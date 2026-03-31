@@ -5,7 +5,7 @@ import { createPropertyPanel, setPropertyPanelMapping } from "./ui/property-pane
 import { createModelPanel } from "./ui/model-panel";
 import {
   createContextMenu, setContextMenuMapping, setMultiSelectMode,
-  selectedIds, isolateSelected, hideSelected, resetFilters
+  isolateSelected, hideSelected, resetFilters, removeLastSelected
 } from "./ui/context-menu";
 import { createFilterPanel } from "./ui/filter-panel";
 import { parseMarks, PhaseManager, createTimelineUI } from "./addons/bouwvolgorde";
@@ -111,10 +111,7 @@ async function main(): Promise<void> {
 
       const msActions = [
         { icon: ICONS.add, label: "Toevoegen", action: () => { /* multi-select stays on, just tap elements */ } },
-        { icon: ICONS.remove, label: "Verwijderen", action: () => {
-          const last = Array.from(selectedIds).pop();
-          if (last) { selectedIds.delete(last); instance.viewer.requestRender(); }
-        }},
+        { icon: ICONS.remove, label: "Verwijderen", action: () => removeLastSelected() },
         { icon: ICONS.isolate, label: "Isoleer", action: () => isolateSelected() },
         { icon: ICONS.hide, label: "Verberg", action: () => hideSelected() },
         { icon: ICONS.reset, label: "Reset", action: () => resetFilters() },

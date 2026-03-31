@@ -43,29 +43,24 @@ export async function initViewer(
     orbitAroundCursor: true,
   };
 
-  // Dynamic zoom sensitivity: normal for mouse, distance-based for touch
-  let isTouch = false;
+  // Dynamic zoom: mouse = 1.0, touch = distance-based gradient
   container.addEventListener("pointerdown", (e) => {
-    isTouch = e.pointerType === "touch";
+    if (e.pointerType === "touch") {
+      const dist = camera.getPosition().distanceTo(camera.getTarget());
+      // Far (>50) = 0.4, close (<2) = 0.05, linear gradient
+      const s = Math.max(0.05, Math.min(0.4, dist * 0.008));
+      camera.options = { ...camera.options, zoomSensitivity: s };
+    } else {
+      camera.options = { ...camera.options, zoomSensitivity: 1.0 };
+    }
   });
 
-  // Gradient zoom for touch: slower when closer to target
-  function updateTouchZoomSensitivity(): void {
-    requestAnimationFrame(updateTouchZoomSensitivity);
-    if (!isTouch) {
-      if (camera.options.zoomSensitivity !== 1.0) {
-        camera.options = { ...camera.options, zoomSensitivity: 1.0 };
-      }
-      return;
-    }
-    const pos = camera.getPosition();
-    const target = camera.getTarget();
-    const dist = pos.distanceTo(target);
-    // Scale: far (>50) = 0.3, close (<5) = 0.05, gradient between
-    const sensitivity = Math.max(0.05, Math.min(0.3, dist * 0.006));
-    camera.options = { ...camera.options, zoomSensitivity: sensitivity };
-  }
-  requestAnimationFrame(updateTouchZoomSensitivity);
+  // Also update during pinch (touchmove fires while fingers move)
+  container.addEventListener("touchmove", () => {
+    const dist = camera.getPosition().distanceTo(camera.getTarget());
+    const s = Math.max(0.05, Math.min(0.4, dist * 0.008));
+    camera.options = { ...camera.options, zoomSensitivity: s };
+  }, { passive: true });
 
   const selection = viewer.createExtension(SelectionExtension);
   const filtering = viewer.createExtension(FilteringExtension);
