@@ -43,45 +43,42 @@ export async function initViewer(
     orbitAroundCursor: true,
   };
 
-  // Dynamic zoom: mouse = default, touch = distance-based (logarithmic)
-  // Access orbit controls directly for reliable runtime updates
+  // Override touch zoom: replace Speckle's touchModeZoom with distance-based version
+  // Speckle applies zoomSensitivity² (once in touchModeZoom, again in userAdjustOrbit)
+  // so setting the option is not enough. We replace the handler entirely.
   const orbitControls = (camera as unknown as { _orbitControls: {
-    _options: { zoomSensitivity: number };
+    _options: { zoomSensitivity: number; enableZoom: boolean; inputSensitivity: number };
+    pointers: Array<{ clientX: number; clientY: number }>;
+    lastSeparation: number;
+    _container: HTMLElement;
+    twoTouchDistance: (a: { clientX: number; clientY: number }, b: { clientX: number; clientY: number }) => number;
+    adjustOrbit: (theta: number, phi: number, zoom: number) => void;
+    panPerPixel: number;
+    movePan: (dx: number, dy: number) => void;
+    touchModeZoom: ((dx: number, dy: number) => void) | null;
   } })._orbitControls;
 
-  // Debug overlay (temporary — shows zoom values on screen)
+  // Debug overlay (temporary)
   const debugEl = document.createElement("div");
   debugEl.id = "zoom-debug";
   debugEl.style.cssText = "position:fixed;bottom:8px;left:8px;background:rgba(0,0,0,0.7);color:#0f0;font:12px monospace;padding:6px 10px;border-radius:6px;z-index:9999;pointer-events:none;";
   document.body.appendChild(debugEl);
 
-  function touchZoomSensitivity(): number {
+  // Replace touchModeZoom with distance-aware version
+  orbitControls.touchModeZoom = (dx: number, dy: number) => {
     const dist = camera.getPosition().distanceTo(camera.getTarget());
-    // Logarithmic: dist=100→0.35, dist=10→0.18, dist=1→0.01
-    const s = Math.max(0.01, Math.min(0.35, Math.log10(Math.max(dist, 0.1)) * 0.17));
-    return s;
-  }
+    // Logarithmic sensitivity: far=0.4, close=0.02
+    const sensitivity = Math.max(0.02, Math.min(0.4, Math.log10(Math.max(dist, 0.1)) * 0.2));
 
-  function updateDebug(s: number): void {
-    const dist = camera.getPosition().distanceTo(camera.getTarget());
-    debugEl.textContent = `dist=${dist.toFixed(1)} zoom=${s.toFixed(3)} opts=${orbitControls._options.zoomSensitivity.toFixed(3)}`;
-  }
+    const sep = orbitControls.twoTouchDistance(orbitControls.pointers[0], orbitControls.pointers[1]);
+    const delta = 0.08 * sensitivity * (orbitControls.lastSeparation - sep) * 50 / orbitControls._container.offsetHeight;
+    orbitControls.lastSeparation = sep;
+    // Call adjustOrbit directly (bypasses userAdjustOrbit's second sensitivity multiply)
+    orbitControls.adjustOrbit(0, 0, delta);
+    if (orbitControls.panPerPixel > 0) orbitControls.movePan(dx, dy);
 
-  container.addEventListener("pointerdown", (e) => {
-    if (e.pointerType === "touch") {
-      const s = touchZoomSensitivity();
-      orbitControls._options.zoomSensitivity = s;
-      updateDebug(s);
-    } else {
-      orbitControls._options.zoomSensitivity = 1.0;
-    }
-  });
-
-  container.addEventListener("touchmove", () => {
-    const s = touchZoomSensitivity();
-    orbitControls._options.zoomSensitivity = s;
-    updateDebug(s);
-  }, { passive: true });
+    debugEl.textContent = `dist=${dist.toFixed(1)} sens=${sensitivity.toFixed(3)} delta=${delta.toFixed(4)}`;
+  };
 
   const selection = viewer.createExtension(SelectionExtension);
   const filtering = viewer.createExtension(FilteringExtension);
