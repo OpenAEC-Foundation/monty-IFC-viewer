@@ -49,24 +49,38 @@ export async function initViewer(
     _options: { zoomSensitivity: number };
   } })._orbitControls;
 
+  // Debug overlay (temporary — shows zoom values on screen)
+  const debugEl = document.createElement("div");
+  debugEl.id = "zoom-debug";
+  debugEl.style.cssText = "position:fixed;bottom:8px;left:8px;background:rgba(0,0,0,0.7);color:#0f0;font:12px monospace;padding:6px 10px;border-radius:6px;z-index:9999;pointer-events:none;";
+  document.body.appendChild(debugEl);
+
   function touchZoomSensitivity(): number {
     const dist = camera.getPosition().distanceTo(camera.getTarget());
     // Logarithmic: dist=100→0.35, dist=10→0.18, dist=1→0.01
     const s = Math.max(0.01, Math.min(0.35, Math.log10(Math.max(dist, 0.1)) * 0.17));
-    console.log(`zoom: dist=${dist.toFixed(1)} sensitivity=${s.toFixed(3)}`);
     return s;
+  }
+
+  function updateDebug(s: number): void {
+    const dist = camera.getPosition().distanceTo(camera.getTarget());
+    debugEl.textContent = `dist=${dist.toFixed(1)} zoom=${s.toFixed(3)} opts=${orbitControls._options.zoomSensitivity.toFixed(3)}`;
   }
 
   container.addEventListener("pointerdown", (e) => {
     if (e.pointerType === "touch") {
-      orbitControls._options.zoomSensitivity = touchZoomSensitivity();
+      const s = touchZoomSensitivity();
+      orbitControls._options.zoomSensitivity = s;
+      updateDebug(s);
     } else {
       orbitControls._options.zoomSensitivity = 1.0;
     }
   });
 
   container.addEventListener("touchmove", () => {
-    orbitControls._options.zoomSensitivity = touchZoomSensitivity();
+    const s = touchZoomSensitivity();
+    orbitControls._options.zoomSensitivity = s;
+    updateDebug(s);
   }, { passive: true });
 
   const selection = viewer.createExtension(SelectionExtension);
