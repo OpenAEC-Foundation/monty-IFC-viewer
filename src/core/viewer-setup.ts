@@ -67,17 +67,18 @@ export async function initViewer(
   // Replace touchModeZoom with distance-aware version
   orbitControls.touchModeZoom = (dx: number, dy: number) => {
     const dist = camera.getPosition().distanceTo(camera.getTarget());
-    // Logarithmic sensitivity: far=0.4, close=0.02
-    const sensitivity = Math.max(0.02, Math.min(0.4, Math.log10(Math.max(dist, 0.1)) * 0.2));
+    // Scale zoom speed proportional to distance (closer = much slower)
+    // dist=100 → factor ~0.032, dist=10 → 0.0032, dist=1 → 0.00032
+    const factor = 0.00032 * dist;
 
     const sep = orbitControls.twoTouchDistance(orbitControls.pointers[0], orbitControls.pointers[1]);
-    const delta = 0.08 * sensitivity * (orbitControls.lastSeparation - sep) * 50 / orbitControls._container.offsetHeight;
+    const delta = factor * (orbitControls.lastSeparation - sep) * 50 / orbitControls._container.offsetHeight;
     orbitControls.lastSeparation = sep;
     // Call adjustOrbit directly (bypasses userAdjustOrbit's second sensitivity multiply)
     orbitControls.adjustOrbit(0, 0, delta);
     if (orbitControls.panPerPixel > 0) orbitControls.movePan(dx, dy);
 
-    debugEl.textContent = `dist=${dist.toFixed(1)} sens=${sensitivity.toFixed(3)} delta=${delta.toFixed(4)}`;
+    debugEl.textContent = `dist=${dist.toFixed(1)} factor=${factor.toFixed(5)} delta=${delta.toFixed(5)}`;
   };
 
   const selection = viewer.createExtension(SelectionExtension);
