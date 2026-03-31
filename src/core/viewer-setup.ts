@@ -43,23 +43,21 @@ export async function initViewer(
     orbitAroundCursor: true,
   };
 
-  // Dynamic zoom: mouse = 1.0, touch = distance-based gradient
+  // Dynamic zoom: mouse = 1.0, touch = distance-based (logarithmic)
+  function touchZoomSensitivity(): number {
+    const dist = camera.getPosition().distanceTo(camera.getTarget());
+    // Logarithmic scale: slows down dramatically when close
+    // dist=100 → 0.35, dist=10 → 0.18, dist=1 → 0.01, dist=0.1 → 0.0
+    return Math.max(0.01, Math.min(0.35, Math.log10(Math.max(dist, 0.1)) * 0.17));
+  }
+
   container.addEventListener("pointerdown", (e) => {
-    if (e.pointerType === "touch") {
-      const dist = camera.getPosition().distanceTo(camera.getTarget());
-      // Far (>50) = 0.4, close (<2) = 0.05, linear gradient
-      const s = Math.max(0.05, Math.min(0.4, dist * 0.008));
-      camera.options = { ...camera.options, zoomSensitivity: s };
-    } else {
-      camera.options = { ...camera.options, zoomSensitivity: 1.0 };
-    }
+    const s = e.pointerType === "touch" ? touchZoomSensitivity() : 1.0;
+    camera.options = { ...camera.options, zoomSensitivity: s };
   });
 
-  // Also update during pinch (touchmove fires while fingers move)
   container.addEventListener("touchmove", () => {
-    const dist = camera.getPosition().distanceTo(camera.getTarget());
-    const s = Math.max(0.05, Math.min(0.4, dist * 0.008));
-    camera.options = { ...camera.options, zoomSensitivity: s };
+    camera.options = { ...camera.options, zoomSensitivity: touchZoomSensitivity() };
   }, { passive: true });
 
   const selection = viewer.createExtension(SelectionExtension);

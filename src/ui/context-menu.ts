@@ -10,29 +10,11 @@ export const selectedIds = new Set<string>();
 /** Whether filters are currently active (isolate/hide) */
 export let hasActiveFilters = false;
 
-/** Touch multi-select mode (replaces Ctrl/Shift on touch devices) */
-export let multiSelectMode = false;
+/** Touch multi-select mode: "add" = tap adds, "remove" = tap removes */
+export let multiSelectMode: false | "add" | "remove" = false;
 
-export function setMultiSelectMode(enabled: boolean): void {
-  multiSelectMode = enabled;
-}
-
-/** Remove last selected element and update highlight */
-export function removeLastSelected(): void {
-  const last = Array.from(selectedIds).pop();
-  if (!last) return;
-  selectedIds.delete(last);
-  if (_instance) {
-    if (selectedIds.size === 0) {
-      _instance.filtering.removeUserObjectColors();
-    } else {
-      const ids = getTargetIds();
-      _instance.filtering.setUserObjectColors([
-        { objectIds: ids, color: SELECTION_COLOR },
-      ]);
-    }
-    _instance.viewer.requestRender();
-  }
+export function setMultiSelectMode(mode: false | "add" | "remove"): void {
+  multiSelectMode = mode;
 }
 
 let _mapping: PhaseMapping | null = null;
@@ -144,11 +126,16 @@ export function createContextMenu(instance: ViewerInstance): HTMLElement {
 
     const isMulti = multiSelectMode || (e && (e.ctrlKey || e.shiftKey || e.metaKey));
     if (isMulti) {
-      // Multi-select: toggle element
-      if (selectedIds.has(raw.id)) {
+      if (multiSelectMode === "remove") {
+        // Remove mode: only remove, never add
         selectedIds.delete(raw.id);
       } else {
-        selectedIds.add(raw.id);
+        // Add mode (or Ctrl/Shift): toggle element
+        if (selectedIds.has(raw.id)) {
+          selectedIds.delete(raw.id);
+        } else {
+          selectedIds.add(raw.id);
+        }
       }
     } else {
       // Single select: replace selection

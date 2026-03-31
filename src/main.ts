@@ -5,7 +5,7 @@ import { createPropertyPanel, setPropertyPanelMapping } from "./ui/property-pane
 import { createModelPanel } from "./ui/model-panel";
 import {
   createContextMenu, setContextMenuMapping, setMultiSelectMode,
-  isolateSelected, hideSelected, resetFilters, removeLastSelected
+  isolateSelected, hideSelected, resetFilters
 } from "./ui/context-menu";
 import { createFilterPanel } from "./ui/filter-panel";
 import { parseMarks, PhaseManager, createTimelineUI } from "./addons/bouwvolgorde";
@@ -109,15 +109,43 @@ async function main(): Promise<void> {
         reset: `<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18"><path d="M3 10a7 7 0 0 1 12.9-3.8"/><path d="M17 10a7 7 0 0 1-12.9 3.8"/><polyline points="3 4 3 10 9 10"/></svg>`,
       };
 
-      const msActions = [
-        { icon: ICONS.add, label: "Toevoegen", action: () => { /* multi-select stays on, just tap elements */ } },
-        { icon: ICONS.remove, label: "Verwijderen", action: () => removeLastSelected() },
+      // Mode buttons (+ and −) — toggle between add/remove mode
+      const addBtn = document.createElement("button");
+      addBtn.className = "ms-action-btn active";
+      addBtn.innerHTML = `${ICONS.add}<span>Toevoegen</span>`;
+
+      const removeBtn = document.createElement("button");
+      removeBtn.className = "ms-action-btn";
+      removeBtn.innerHTML = `${ICONS.remove}<span>Verwijderen</span>`;
+
+      addBtn.addEventListener("click", () => {
+        addBtn.classList.add("active");
+        removeBtn.classList.remove("active");
+        setMultiSelectMode("add");
+      });
+
+      removeBtn.addEventListener("click", () => {
+        removeBtn.classList.add("active");
+        addBtn.classList.remove("active");
+        setMultiSelectMode("remove");
+      });
+
+      msBody.appendChild(addBtn);
+      msBody.appendChild(removeBtn);
+
+      // Divider
+      const divider = document.createElement("div");
+      divider.style.cssText = "height:1px;background:var(--border-subtle);margin:4px 0;";
+      msBody.appendChild(divider);
+
+      // Action buttons
+      const actionItems = [
         { icon: ICONS.isolate, label: "Isoleer", action: () => isolateSelected() },
         { icon: ICONS.hide, label: "Verberg", action: () => hideSelected() },
         { icon: ICONS.reset, label: "Reset", action: () => resetFilters() },
       ];
 
-      for (const { icon, label, action } of msActions) {
+      for (const { icon, label, action } of actionItems) {
         const btn = document.createElement("button");
         btn.className = "ms-action-btn";
         btn.innerHTML = `${icon}<span>${label}</span>`;
@@ -136,7 +164,9 @@ async function main(): Promise<void> {
         } else {
           // Activate multi-select + show panel
           multiBtn.classList.add("active");
-          setMultiSelectMode(true);
+          setMultiSelectMode("add");
+          addBtn.classList.add("active");
+          removeBtn.classList.remove("active");
           document.getElementById("model-panel")?.classList.add("hidden");
           document.getElementById("filter-panel")?.classList.add("hidden");
           msPanel.classList.remove("hidden");

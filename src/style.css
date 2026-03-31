@@ -806,6 +806,12 @@ body {
   background: var(--hover-bg);
 }
 
+.ms-action-btn.active {
+  background: var(--active-bg);
+  border: 1px solid var(--accent-teal);
+  color: var(--accent-teal);
+}
+
 .ms-action-btn svg {
   flex-shrink: 0;
 }
