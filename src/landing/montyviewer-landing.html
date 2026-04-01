@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monty — Projecten</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* Brand colours extracted from screenshot */
+  --blue:        #2563EB;
+  --blue-dark:   #1D4ED8;
+  --teal:        #3DBFA0;
+  --teal-dark:   #2D9E85;
+  --orange:      #E8722A;
+  --orange-dark: #C95E18;
+  --orange-bg:   #FEF0E7;
+  --orange-border: rgba(232,114,42,0.22);
+
+  /* Neutrals */
+  --bg:          #F4F6F9;
+  --surface:     #FFFFFF;
+  --border:      #E2E8F0;
+  --border-hi:   #CBD5E1;
+  --ink:         #0F172A;
+  --ink-2:       #475569;
+  --ink-3:       #94A3B8;
+
+  /* Phase colours */
+  --ph-green-bg:  #ECFDF5; --ph-green:  #065F46; --ph-green-b:  rgba(5,150,105,.2);
+  --ph-purple-bg: #F5F3FF; --ph-purple: #4C1D95; --ph-purple-b: rgba(124,58,237,.2);
+  --ph-amber-bg:  #FFFBEB; --ph-amber:  #78350F; --ph-amber-b:  rgba(245,158,11,.25);
+  --ph-gray-bg:   #F1F5F9; --ph-gray:   #334155; --ph-gray-b:   rgba(100,116,139,.2);
+
+  --font: 'Outfit', sans-serif;
+  --r:    12px;
+  --r-sm: 7px;
+  --shadow-sm: 0 1px 3px rgba(15,23,42,.07), 0 1px 2px rgba(15,23,42,.04);
+  --shadow-md: 0 4px 16px rgba(15,23,42,.09), 0 1px 4px rgba(15,23,42,.04);
+  --shadow-lg: 0 20px 50px rgba(15,23,42,.14), 0 4px 12px rgba(15,23,42,.07);
+}
+
+html, body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── TOPBAR ── */
+.topbar {
+  position: sticky; top: 0; z-index: 200;
+  height: 60px;
+  /* same gradient as hero but darker / more opaque */
+  background: rgba(37,99,235,0.97);
+  backdrop-filter: blur(12px);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 clamp(1rem, 4vw, 2.5rem);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+/* LOGO — matches the "MONTY" wordmark with cursor icon */
+.logo {
+  display: flex; align-items: center; gap: 6px;
+  text-decoration: none;
+}
+
+/* Cursor/arrow icon mimicking the Monty logo mark */
+.logo-icon {
+  width: 26px; height: 26px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+.logo-wordmark {
+  font-size: 19px; font-weight: 900;
+  letter-spacing: -0.03em; color: #fff;
+  line-height: 1; text-transform: uppercase;
+}
+
+.topbar-right { display: flex; align-items: center; gap: 8px; }
+
+/* client chip on dark bg */
+.client-chip {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 12px 5px 6px;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 100px;
+  font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.9);
+}
+.chip-av {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--orange); color: #fff;
+  display: grid; place-items: center;
+  font-size: 8.5px; font-weight: 800; letter-spacing: 0.03em;
+  flex-shrink: 0;
+}
+
+/* Orange CTA button — as on the site */
+.btn-cta {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px;
+  background: var(--orange); color: #fff;
+  border-radius: var(--r-sm); border: none;
+  font-family: var(--font); font-size: 13px; font-weight: 700;
+  cursor: pointer; text-decoration: none; letter-spacing: -0.01em;
+  transition: background .15s, transform .1s;
+  white-space: nowrap;
+}
+.btn-cta:hover { background: var(--orange-dark); }
+.btn-cta:active { transform: scale(0.97); }
+
+/* ── HERO ── */
+/* Blue-to-teal gradient matching the screenshot exactly */
+.hero {
+  background: linear-gradient(125deg, #2563EB 0%, #2563EB 40%, #3DBFA0 100%);
+  position: relative; overflow: hidden;
+  padding: 0 clamp(1rem, 4vw, 2.5rem);
+  opacity: 0; transform: translateY(12px);
+  animation: up .55s ease forwards .05s;
+}
+
+/* Subtle blob shape at the boundary (like the curved edge in screenshot) */
+.hero::after {
+  content: '';
+  position: absolute; bottom: -2px; left: 0; right: 0; height: 50px;
+  background: var(--bg);
+  clip-path: ellipse(56% 100% at 50% 100%);
+  pointer-events: none;
+}
+
+.hero-inner {
+  max-width: 1240px; margin: 0 auto;
+  padding: clamp(2.5rem, 5vw, 4rem) 0 clamp(3rem, 5vw, 4.5rem);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem; align-items: center;
+}
+@media (max-width: 700px) {
+  .hero-inner { grid-template-columns: 1fr; }
+  .hero-visual { display: none; }
+}
+
+/* Text side */
+.hero-label {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11.5px; font-weight: 600; letter-spacing: 0.1em;
+  text-transform: uppercase; color: rgba(255,255,255,0.7);
+  margin-bottom: 14px;
+}
+
+.hero-title {
+  font-size: clamp(2rem, 3.5vw, 3rem);
+  font-weight: 900; letter-spacing: -0.04em; line-height: 1.05;
+  color: #fff; margin-bottom: 14px;
+}
+
+.hero-sub {
+  font-size: 15px; font-weight: 400; color: rgba(255,255,255,0.82);
+  line-height: 1.65; max-width: 400px; margin-bottom: 2rem;
+}
+.hero-sub strong { color: #fff; font-weight: 700; }
+
+/* Stats row */
+.hero-stats {
+  display: flex; gap: 2rem; align-items: center;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255,255,255,0.2);
+  margin-top: 2rem;
+}
+.h-stat {}
+.h-stat-val {
+  font-size: 2.2rem; font-weight: 900;
+  letter-spacing: -0.05em; color: #fff; line-height: 1; margin-bottom: 2px;
+}
+.h-stat-lbl {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.07em;
+  text-transform: uppercase; color: rgba(255,255,255,0.6);
+}
+.h-stat-div { width: 1px; height: 36px; background: rgba(255,255,255,0.2); }
+
+/* Visual side — abstract BIM illustration */
+.hero-visual {
+  display: flex; align-items: center; justify-content: flex-end;
+}
+.hero-img-frame {
+  width: 100%; max-width: 380px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 16px;
+  padding: 1.25rem;
+  backdrop-filter: blur(8px);
+}
+.hero-img-frame svg { width: 100%; display: block; }
+
+/* ── TOOLBAR ── */
+.toolbar {
+  max-width: 1240px; margin: 0 auto;
+  padding: 1.25rem clamp(1rem, 4vw, 2.5rem);
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  opacity: 0; animation: up .55s ease forwards .25s;
+}
+
+.f-btn {
+  font-family: var(--font); font-size: 12.5px; font-weight: 500;
+  padding: 6.5px 13px; border-radius: 100px;
+  border: 1px solid var(--border);
+  background: var(--surface); color: var(--ink-2);
+  cursor: pointer; letter-spacing: -.01em;
+  transition: all .12s;
+}
+.f-btn:hover { border-color: var(--border-hi); color: var(--ink); }
+.f-btn.active { background: var(--ink); border-color: var(--ink); color: #fff; }
+
+.t-gap { flex: 1; min-width: 8px; }
+
+.search-box { position: relative; }
+.search-box input {
+  font-family: var(--font); font-size: 13px; font-weight: 400;
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--border); border-radius: var(--r-sm);
+  padding: 7.5px 13px 7.5px 34px;
+  outline: none; width: 210px;
+  transition: border-color .15s, box-shadow .15s;
+}
+.search-box input:focus {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 3px rgba(232,114,42,.12);
+}
+.search-box input::placeholder { color: var(--ink-3); }
+.search-ico {
+  position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+  color: var(--ink-3); pointer-events: none;
+}
+
+/* ── SECTION HEADER ── */
+.sec-head {
+  max-width: 1240px; margin: 0 auto;
+  padding: 0 clamp(1rem, 4vw, 2.5rem) 1rem;
+  display: flex; align-items: center; gap: 10px;
+  opacity: 0; animation: up .55s ease forwards .35s;
+}
+.sec-lbl {
+  font-size: 11px; font-weight: 700; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--ink-3); white-space: nowrap;
+}
+.sec-line { flex: 1; height: 1px; background: var(--border); }
+.sec-count { font-size: 11px; font-weight: 500; color: var(--ink-3); }
+
+/* ── GRID ── */
+.grid-wrap {
+  max-width: 1240px; margin: 0 auto;
+  padding: 0 clamp(1rem, 4vw, 2.5rem) 5rem;
+}
+.p-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.1rem;
+}
+
+/* ── CARD ── */
+.p-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  text-decoration: none; color: inherit;
+  box-shadow: var(--shadow-sm);
+  opacity: 0; transform: translateY(18px);
+  transition: transform .25s ease, box-shadow .25s ease, border-color .2s;
+}
+.p-card.vis { animation: up .48s cubic-bezier(.22,1,.36,1) forwards; }
+.p-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-lg); border-color: var(--border-hi); }
+
+/* thumb */
+.p-thumb {
+  aspect-ratio: 16/9;
+  background: var(--bg);
+  position: relative; overflow: hidden;
+  border-bottom: 1px solid var(--border);
+}
+.p-thumb img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%; object-fit: cover;
+  opacity: 0; transition: opacity .35s, transform .5s;
+}
+.p-thumb img.ok { opacity: 1; }
+.p-card:hover .p-thumb img { transform: scale(1.04); }
+
+.p-placeholder { position: absolute; inset: 0; transition: opacity .35s; }
+.p-placeholder.gone { opacity: 0; }
+.p-placeholder svg { width: 100%; height: 100%; display: block; }
+
+/* phase badge — matches the style of montyviewer labels */
+.p-phase {
+  position: absolute; top: 9px; left: 9px;
+  font-size: 10px; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; padding: 3px 8px; border-radius: 100px;
+}
+
+/* active indicator — teal dot matching brand teal */
+.p-active {
+  position: absolute; top: 9px; right: 9px;
+  display: flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 600; color: var(--teal-dark);
+  background: rgba(255,255,255,0.92);
+  border: 1px solid rgba(61,191,160,0.25);
+  padding: 3px 9px 3px 6px; border-radius: 100px;
+  backdrop-filter: blur(4px);
+}
+.p-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--teal);
+  animation: blink 2s ease-in-out infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+
+/* body */
+.p-body {
+  padding: 1rem 1rem .9rem;
+  display: flex; flex-direction: column; flex: 1;
+}
+.p-type {
+  font-size: 10.5px; font-weight: 600; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--ink-3); margin-bottom: 4px;
+}
+.p-title {
+  font-size: 16.5px; font-weight: 700; letter-spacing: -.025em;
+  line-height: 1.25; color: var(--ink); margin-bottom: 6px;
+}
+.p-desc {
+  font-size: 13px; font-weight: 400; color: var(--ink-2);
+  line-height: 1.6; flex: 1; margin-bottom: 1rem;
+}
+.p-divider { height: 1px; background: var(--border); margin-bottom: .85rem; }
+.p-footer { display: flex; align-items: center; justify-content: space-between; }
+.p-data { display: flex; gap: 1.25rem; }
+.d-item { display: flex; flex-direction: column; gap: 1px; }
+.d-lbl {
+  font-size: 9.5px; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.d-val { font-size: 12px; font-weight: 500; color: var(--ink-2); }
+
+/* Orange CTA on card — consistent with site buttons */
+.p-open {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 12.5px; font-weight: 700; color: var(--orange);
+  transition: gap .18s;
+}
+.p-card:hover .p-open { gap: 8px; }
+.open-btn {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--orange-bg); border: 1px solid var(--orange-border);
+  display: grid; place-items: center; flex-shrink: 0;
+  transition: background .15s;
+}
+.p-card:hover .open-btn { background: var(--orange); }
+.p-card:hover .open-btn svg { stroke: #fff; }
+
+/* ── EMPTY STATE ── */
+.p-empty {
+  grid-column: 1/-1;
+  padding: 4rem; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
+.e-icon {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--bg); display: grid; place-items: center; color: var(--ink-3);
+}
+.p-empty p { font-size: 13px; color: var(--ink-3); }
+
+/* ── FOOTER ── */
+.site-footer {
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  padding: 1.25rem clamp(1rem, 4vw, 2.5rem);
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+}
+.f-brand { display: flex; align-items: center; gap: 7px; }
+.f-mark {
+  width: 26px; height: 26px;
+  background: linear-gradient(135deg, var(--blue) 0%, var(--teal) 100%);
+  border-radius: var(--r-sm);
+  display: grid; place-items: center;
+}
+.f-name {
+  font-size: 14px; font-weight: 900; letter-spacing: -.02em;
+  text-transform: uppercase; color: var(--ink);
+}
+.f-copy { font-size: 12px; color: var(--ink-3); }
+
+/* ── ANIMS ── */
+@keyframes up { to { opacity: 1; transform: translateY(0); } }
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 3px; }
+
+@media (max-width: 520px) {
+  .p-grid { grid-template-columns: 1fr; }
+  .search-box input { width: 140px; }
+  .hero-stats { gap: 1.25rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── TOPBAR ── -->
+<header class="topbar">
+  <a class="logo" href="https://montyviewer.com">
+    <!-- Logo: cursor/arrow icon + MONTY wordmark matching the site -->
+    <div class="logo-icon">
+      <svg width="20" height="24" viewBox="0 0 20 24" fill="none">
+        <path d="M3 2L3 18L7 14L10 21L12.5 20L9.5 13L15 13L3 2Z" fill="white"/>
+      </svg>
+    </div>
+    <span class="logo-wordmark">MONTY</span>
+  </a>
+
+  <div class="topbar-right">
+    <div class="client-chip">
+      <div class="chip-av" id="chip-av">—</div>
+      <span id="chip-name">laden…</span>
+    </div>
+    <a class="btn-cta" href="https://montyviewer.com/contact/">Probeer Monty</a>
+  </div>
+</header>
+
+<!-- ── HERO ── -->
+<section class="hero">
+  <div class="hero-inner">
+    <!-- Left: text -->
+    <div>
+      <p class="hero-label">Projecten overzicht</p>
+      <h1 class="hero-title">Van ontwerp<br>tot montage.<br>Inzicht in elk detail</h1>
+      <p class="hero-sub">
+        <strong>Monty</strong> is jouw digitale bouwassistent. Selecteer een project om het 3D-model direct in de browser te bekijken.
+      </p>
+      <div class="hero-stats">
+        <div class="h-stat">
+          <div class="h-stat-val" id="stat-count">—</div>
+          <div class="h-stat-lbl">Projecten</div>
+        </div>
+        <div class="h-stat-div"></div>
+        <div class="h-stat">
+          <div class="h-stat-val" id="stat-active">—</div>
+          <div class="h-stat-lbl">Actief</div>
+        </div>
+        <div class="h-stat-div"></div>
+        <div class="h-stat">
+          <div class="h-stat-val" id="stat-client">—</div>
+          <div class="h-stat-lbl">Klant</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: abstract BIM visual -->
+    <div class="hero-visual">
+      <div class="hero-img-frame">
+        <svg viewBox="0 0 340 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- 3D axonometric building frame suggestive of BIM -->
+          <rect width="340" height="220" rx="8" fill="rgba(255,255,255,0.05)"/>
+          <!-- grid floor -->
+          <g opacity="0.3" stroke="rgba(255,255,255,0.4)" stroke-width="0.5">
+            <line x1="20" y1="180" x2="320" y2="180"/>
+            <line x1="20" y1="160" x2="320" y2="160"/>
+            <line x1="20" y1="140" x2="320" y2="140"/>
+            <line x1="60" y1="120" x2="60" y2="200"/>
+            <line x1="120" y1="120" x2="120" y2="200"/>
+            <line x1="180" y1="120" x2="180" y2="200"/>
+            <line x1="240" y1="120" x2="240" y2="200"/>
+            <line x1="300" y1="120" x2="300" y2="200"/>
+          </g>
+          <!-- Main building - front face -->
+          <rect x="80" y="60" width="100" height="120" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"/>
+          <!-- Top face -->
+          <polygon points="80,60 180,60 210,30 110,30" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"/>
+          <!-- Right face -->
+          <polygon points="180,60 210,30 210,150 180,180" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>
+
+          <!-- Smaller building behind -->
+          <rect x="210" y="90" width="70" height="90" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.4)" stroke-width="1"/>
+          <polygon points="210,90 280,90 300,72 230,72" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.4)" stroke-width="1"/>
+          <polygon points="280,90 300,72 300,162 280,180" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.35)" stroke-width="1"/>
+
+          <!-- Dimension lines (orange, matching brand) -->
+          <line x1="44" y1="60" x2="44" y2="180" stroke="#E8722A" stroke-width="1.5" stroke-dasharray="4,3"/>
+          <line x1="38" y1="60" x2="50" y2="60" stroke="#E8722A" stroke-width="1.5"/>
+          <line x1="38" y1="180" x2="50" y2="180" stroke="#E8722A" stroke-width="1.5"/>
+          <text x="34" y="125" fill="#E8722A" font-family="Outfit,sans-serif" font-size="9" font-weight="600" text-anchor="middle">H</text>
+
+          <line x1="80" y1="196" x2="180" y2="196" stroke="#E8722A" stroke-width="1.5" stroke-dasharray="4,3"/>
+          <line x1="80" y1="190" x2="80" y2="202" stroke="#E8722A" stroke-width="1.5"/>
+          <line x1="180" y1="190" x2="180" y2="202" stroke="#E8722A" stroke-width="1.5"/>
+          <text x="130" y="212" fill="#E8722A" font-family="Outfit,sans-serif" font-size="9" font-weight="600" text-anchor="middle">L</text>
+
+          <!-- Window grid on main building -->
+          <rect x="93" y="76" width="22" height="18" fill="rgba(61,191,160,0.35)" stroke="rgba(61,191,160,0.7)" stroke-width="1"/>
+          <rect x="123" y="76" width="22" height="18" fill="rgba(61,191,160,0.35)" stroke="rgba(61,191,160,0.7)" stroke-width="1"/>
+          <rect x="93" y="104" width="22" height="18" fill="rgba(61,191,160,0.25)" stroke="rgba(61,191,160,0.6)" stroke-width="1"/>
+          <rect x="123" y="104" width="22" height="18" fill="rgba(61,191,160,0.25)" stroke="rgba(61,191,160,0.6)" stroke-width="1"/>
+          <rect x="93" y="132" width="22" height="18" fill="rgba(61,191,160,0.15)" stroke="rgba(61,191,160,0.5)" stroke-width="1"/>
+          <rect x="123" y="132" width="22" height="18" fill="rgba(61,191,160,0.15)" stroke="rgba(61,191,160,0.5)" stroke-width="1"/>
+          <!-- Door -->
+          <rect x="152" y="140" width="18" height="40" fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.6)" stroke-width="1"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── TOOLBAR ── -->
+<div class="toolbar">
+  <button class="f-btn active" data-filter="all">Alle</button>
+  <button class="f-btn" data-filter="gevels">Gevels</button>
+  <button class="f-btn" data-filter="wonen">Wonen</button>
+  <button class="f-btn" data-filter="utiliteitsbouw">Utiliteitsbouw</button>
+  <div class="t-gap"></div>
+  <div class="search-box">
+    <svg class="search-ico" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+    </svg>
+    <input id="search" type="text" placeholder="Zoeken…" autocomplete="off">
+  </div>
+</div>
+
+<!-- ── SECTION HEADER ── -->
+<div class="sec-head">
+  <span class="sec-lbl">Projecten</span>
+  <span class="sec-line"></span>
+  <span class="sec-count" id="result-count"></span>
+</div>
+
+<!-- ── GRID ── -->
+<main class="grid-wrap">
+  <div class="p-grid" id="grid"></div>
+</main>
+
+<!-- ── FOOTER ── -->
+<footer class="site-footer">
+  <div class="f-brand">
+    <div class="f-mark">
+      <svg width="14" height="17" viewBox="0 0 20 24" fill="none">
+        <path d="M3 2L3 18L7 14L10 21L12.5 20L9.5 13L15 13L3 2Z" fill="white"/>
+      </svg>
+    </div>
+    <span class="f-name">MONTY</span>
+  </div>
+  <span class="f-copy">BIM naar de bouwplaats · 3BM · Wattstraat 17, Zwijndrecht</span>
+</footer>
+
+<script>
+/* ─ DATA CONFIG ─
+   Inject via:
+   1. window.PROJECTS  (server-side templating)
+   2. ?data=base64json
+   3. ?client=NaamKlant
+*/
+const DEMO = [
+  { id:"abc123def456", title:"Westpoort Appartementen",    description:"Woongebouw 84 appartementen, prefab betongevels met aluminium kozijnen.", type:"gevels",         phase:"Uitvoering", updated:"2025-03-28", elements:1840, active:true,  speckleBase:"https://app.montyviewer.com" },
+  { id:"bcd234efg567", title:"Kantoor De Brug",             description:"Utiliteitsbouw, 7 bouwlagen, glazen gevelscherm met zonweringlamellen.",  type:"utiliteitsbouw", phase:"DO",         updated:"2025-03-15", elements:3210, active:true,  speckleBase:"https://app.montyviewer.com" },
+  { id:"cde345fgh678", title:"Rijhuis Oosterpark",          description:"17 rijwoningen, houten gevelbekleding, traditioneel metselwerk accent.",   type:"wonen",          phase:"VO",         updated:"2025-02-20", elements:490,  active:false, speckleBase:"https://app.montyviewer.com" },
+  { id:"def456ghi789", title:"Logistiek Hub Schiphol",      description:"Industrieel distributiecentrum, sandwichpanelen gevelconstructie.",       type:"utiliteitsbouw", phase:"AO",         updated:"2025-01-05", elements:870,  active:false, speckleBase:"https://app.montyviewer.com" },
+  { id:"efg567hij890", title:"Zorgcomplex Meander",         description:"Zorgfaciliteit 120 bedden, keramische tegel gevelbekleding.",             type:"gevels",         phase:"Uitvoering", updated:"2025-03-30", elements:2650, active:true,  speckleBase:"https://app.montyviewer.com" },
+  { id:"fgh678ijk901", title:"Studentenhuisvesting Noord",  description:"320 studio's, prefab gevelmodules met houtfineer accenten.",              type:"wonen",          phase:"DO",         updated:"2025-03-10", elements:1120, active:true,  speckleBase:"https://app.montyviewer.com" }
+];
+
+const PHASE = {
+  Uitvoering: { bg:"#ECFDF5", color:"#065F46", border:"rgba(5,150,105,.2)"  },
+  DO:         { bg:"#F5F3FF", color:"#4C1D95", border:"rgba(124,58,237,.2)" },
+  VO:         { bg:"#FFFBEB", color:"#78350F", border:"rgba(245,158,11,.25)"},
+  AO:         { bg:"#F1F5F9", color:"#334155", border:"rgba(100,116,139,.2)"},
+};
+
+const gp = k => new URLSearchParams(location.search).get(k);
+
+function load() {
+  if (typeof window.PROJECTS !== 'undefined') return window.PROJECTS;
+  const raw = gp('data');
+  if (raw) try { return JSON.parse(atob(raw)); } catch(e){}
+  return DEMO;
+}
+
+const fmtDate = iso => new Date(iso).toLocaleDateString('nl-NL',{day:'numeric',month:'short',year:'numeric'});
+const fmtNum  = n => n ? n.toLocaleString('nl-NL') : '—';
+const ini     = name => name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+
+/* Placeholder: clean isometric box per project */
+function mkPlaceholder(proj) {
+  const h = [...proj.id].reduce((a,c)=>a+c.charCodeAt(0),0);
+  const hues = [
+    ['#EFF6FF','#BFDBFE'],   // blue tint
+    ['#F0FDF4','#BBF7D0'],   // green tint
+    ['#F5F3FF','#DDD6FE'],   // purple tint
+    ['#FFF7ED','#FED7AA'],   // orange tint
+    ['#ECFEFF','#A5F3FC'],   // teal tint
+  ];
+  const [bg, stroke] = hues[h % hues.length];
+  const ox=110+(h%60), oy=40+(h%30), w=90+(h%40), d=28+(h%14), ht=70+(h%30);
+  return `<svg viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
+    <rect width="320" height="180" fill="${bg}"/>
+    <defs>
+      <pattern id="p${h%9999}" width="18" height="18" patternUnits="userSpaceOnUse">
+        <path d="M18 0L0 0 0 18" fill="none" stroke="${stroke}" stroke-width="0.4" opacity="0.6"/>
+      </pattern>
+    </defs>
+    <rect width="320" height="180" fill="url(#p${h%9999})"/>
+    <!-- front -->
+    <rect x="${ox}" y="${oy+d}" width="${w}" height="${ht}" fill="white" fill-opacity="0.7" stroke="${stroke}" stroke-width="1.2"/>
+    <!-- top -->
+    <polygon points="${ox},${oy+d} ${ox+w},${oy+d} ${ox+w+d},${oy} ${ox+d},${oy}" fill="white" fill-opacity="0.5" stroke="${stroke}" stroke-width="1.2"/>
+    <!-- right -->
+    <polygon points="${ox+w},${oy+d} ${ox+w+d},${oy} ${ox+w+d},${oy+ht} ${ox+w},${oy+ht+d}" fill="white" fill-opacity="0.3" stroke="${stroke}" stroke-width="1.2"/>
+    <!-- dim line orange -->
+    <line x1="${ox-12}" y1="${oy+d}" x2="${ox-12}" y2="${oy+ht+d}" stroke="#E8722A" stroke-width="1" stroke-dasharray="3,2" opacity="0.7"/>
+    <text x="160" y="172" text-anchor="middle" fill="${stroke}" font-family="Outfit,sans-serif" font-size="8" font-weight="700" letter-spacing="0.14em" opacity="0.8">${proj.id.slice(0,14).toUpperCase()}</text>
+  </svg>`;
+}
+
+function mkCard(proj, delay) {
+  const ps = PHASE[proj.phase] || PHASE.AO;
+  const card = document.createElement('a');
+  card.href = `/?project=${proj.id}`;
+  card.className = 'p-card';
+  card.style.animationDelay = `${delay}ms`;
+  card.dataset.type = proj.type;
+  card.dataset.s = (proj.title + ' ' + proj.description).toLowerCase();
+
+  card.innerHTML = `
+    <div class="p-thumb">
+      <img alt="${proj.title}">
+      <div class="p-placeholder">${mkPlaceholder(proj)}</div>
+      <span class="p-phase" style="background:${ps.bg};color:${ps.color};border:1px solid ${ps.border};">${proj.phase}</span>
+      ${proj.active ? `<span class="p-active"><span class="p-dot"></span>Actief</span>` : ''}
+    </div>
+    <div class="p-body">
+      <p class="p-type">${proj.type}</p>
+      <h2 class="p-title">${proj.title}</h2>
+      <p class="p-desc">${proj.description}</p>
+      <div class="p-divider"></div>
+      <div class="p-footer">
+        <div class="p-data">
+          <div class="d-item">
+            <span class="d-lbl">Bijgewerkt</span>
+            <span class="d-val">${fmtDate(proj.updated)}</span>
+          </div>
+          ${proj.elements ? `<div class="d-item"><span class="d-lbl">Elementen</span><span class="d-val">${fmtNum(proj.elements)}</span></div>` : ''}
+        </div>
+        <div class="p-open">
+          Bekijk
+          <div class="open-btn">
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="#E8722A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 8h10M9 4l4 4-4 4"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+  const img = card.querySelector('img');
+  const ph  = card.querySelector('.p-placeholder');
+  img.src = `${proj.speckleBase}/preview/${proj.id}`;
+  img.onload  = () => { img.classList.add('ok'); ph.classList.add('gone'); };
+  img.onerror = () => {};
+  return card;
+}
+
+(function() {
+  const projects = load();
+  const client   = gp('client') || window.CLIENT_NAME || 'Demo Klant';
+
+  document.getElementById('chip-av').textContent    = ini(client);
+  document.getElementById('chip-name').textContent  = client;
+  document.getElementById('stat-client').textContent = ini(client);
+  document.getElementById('stat-count').textContent  = projects.length;
+  document.getElementById('stat-active').textContent = projects.filter(x=>x.active).length;
+  document.title = `${client} — MontyViewer`;
+
+  const grid    = document.getElementById('grid');
+  const countEl = document.getElementById('result-count');
+  let fil = 'all', q = '';
+
+  function draw(list) {
+    grid.innerHTML = '';
+    countEl.textContent = list.length + ' resultaten';
+    if (!list.length) {
+      const e = document.createElement('div');
+      e.className = 'p-empty';
+      e.innerHTML = `<div class="e-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div><p>Geen projecten gevonden</p>`;
+      grid.appendChild(e); return;
+    }
+    list.forEach((pr, i) => {
+      const c = mkCard(pr, i * 50);
+      grid.appendChild(c);
+      requestAnimationFrame(() => requestAnimationFrame(() => c.classList.add('vis')));
+    });
+  }
+
+  function apply() {
+    draw(projects.filter(pr =>
+      (fil === 'all' || pr.type === fil) &&
+      (!q || (pr.title + ' ' + pr.description).toLowerCase().includes(q))
+    ));
+  }
+
+  document.querySelectorAll('.f-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.f-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      fil = btn.dataset.filter;
+      apply();
+    });
+  });
+
+  document.getElementById('search').addEventListener('input', e => {
+    q = e.target.value.toLowerCase().trim();
+    apply();
+  });
+
+  draw(projects);
+})();
+</script>
+</body>
+</html>

@@ -12,6 +12,12 @@ import { parseMarks, PhaseManager, createTimelineUI } from "./addons/bouwvolgord
 import "./style.css";
 
 async function main(): Promise<void> {
+  const clientSlug = new URLSearchParams(window.location.search).get("client");
+  if (clientSlug) {
+    window.location.href = `/landing/?client=${encodeURIComponent(clientSlug)}`;
+    return;
+  }
+
   const container = document.getElementById("viewer-container");
   const loadingIndicator = document.getElementById("loading-indicator");
 
@@ -38,8 +44,19 @@ async function main(): Promise<void> {
     return;
   }
 
-  // Add toolbar + property panel
+  // Back button to project overview (if navigated from landing page)
   const overlay = document.getElementById("overlay");
+  const fromClient = new URLSearchParams(window.location.search).get("from");
+  if (fromClient && overlay) {
+    const backBtn = document.createElement("a");
+    backBtn.id = "back-to-projects";
+    backBtn.href = `/?client=${fromClient}`;
+    backBtn.title = "Terug naar projecten";
+    backBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><polyline points="15 18 9 12 15 6"/></svg>`;
+    overlay.appendChild(backBtn);
+  }
+
+  // Add toolbar + property panel
   const toolbar = createToolbar(instance);
   overlay?.appendChild(toolbar);
   const { panel: propertyPanel, infoBtn } = createPropertyPanel(instance);

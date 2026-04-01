@@ -1005,3 +1005,33 @@ html.dark-theme #property-panel::-webkit-scrollbar-thumb {
     padding: 10px 14px;
   }
 }
+
+/* ============================================
+   Back to Projects Button (in viewer)
+   ============================================ */
+
+#back-to-projects {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--bg-toolbar);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  text-decoration: none;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+#back-to-projects:hover {
+  background: var(--hover-bg);
+  border-color: var(--accent-teal);
+}
+

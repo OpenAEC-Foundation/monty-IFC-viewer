@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JM Concepten — MontyViewer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --blue:          #2563EB;
+  --blue-dark:     #1D4ED8;
+  --teal:          #3DBFA0;
+  --teal-dark:     #2D9E85;
+  --orange:        #E8722A;
+  --orange-dark:   #C95E18;
+  --orange-bg:     #FEF0E7;
+  --orange-border: rgba(232,114,42,0.22);
+
+  --bg:       #F4F6F9;
+  --surface:  #FFFFFF;
+  --border:   #E2E8F0;
+  --border-hi:#CBD5E1;
+  --ink:      #0F172A;
+  --ink-2:    #475569;
+  --ink-3:    #94A3B8;
+
+  /* Demo banner */
+  --demo-bg:     #FFF7ED;
+  --demo-border: #FED7AA;
+  --demo-ink:    #9A3412;
+  --demo-accent: #EA580C;
+
+  --font: 'Outfit', sans-serif;
+  --r:    12px;
+  --r-sm: 7px;
+  --shadow-sm: 0 1px 3px rgba(15,23,42,.07), 0 1px 2px rgba(15,23,42,.04);
+  --shadow-lg: 0 20px 50px rgba(15,23,42,.14), 0 4px 12px rgba(15,23,42,.07);
+}
+
+html, body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── DEMO BANNER ── */
+.demo-banner {
+  background: var(--demo-bg);
+  border-bottom: 1px solid var(--demo-border);
+  padding: 9px clamp(1rem, 4vw, 2.5rem);
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  flex-wrap: wrap;
+}
+.demo-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--demo-accent); color: #fff;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.08em;
+  text-transform: uppercase; padding: 2px 8px; border-radius: 100px;
+  flex-shrink: 0;
+}
+.demo-text {
+  font-size: 13px; font-weight: 500; color: var(--demo-ink);
+}
+.demo-text strong { font-weight: 700; }
+.demo-cta {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--demo-accent); color: #fff;
+  font-family: var(--font); font-size: 12px; font-weight: 700;
+  padding: 6px 14px; border-radius: var(--r-sm); border: none;
+  cursor: pointer; text-decoration: none; white-space: nowrap;
+  transition: background .15s, transform .1s;
+}
+.demo-cta:hover { background: #c2410c; }
+.demo-cta:active { transform: scale(0.97); }
+.demo-cta svg { flex-shrink: 0; }
+
+/* ── TOPBAR ── */
+.topbar {
+  position: sticky; top: 0; z-index: 200;
+  height: 60px;
+  background: rgba(37,99,235,0.97);
+  backdrop-filter: blur(12px);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 clamp(1rem, 4vw, 2.5rem);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.logo {
+  display: flex; align-items: center; gap: 6px;
+  text-decoration: none;
+}
+.logo-icon {
+  width: 26px; height: 26px;
+  display: flex; align-items: center; justify-content: center;
+}
+.logo-wordmark {
+  font-size: 19px; font-weight: 900;
+  letter-spacing: -0.03em; color: #fff;
+  line-height: 1; text-transform: uppercase;
+}
+
+.topbar-right { display: flex; align-items: center; gap: 8px; }
+
+.client-chip {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 12px 5px 6px;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 100px;
+  font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.9);
+}
+.chip-av {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--orange); color: #fff;
+  display: grid; place-items: center;
+  font-size: 8.5px; font-weight: 800; letter-spacing: 0.03em;
+}
+
+/* demo pill in topbar */
+.demo-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: rgba(234,88,12,0.25);
+  border: 1px solid rgba(234,88,12,0.4);
+  border-radius: 100px;
+  font-size: 10.5px; font-weight: 700; color: #FDBA74;
+  padding: 3px 9px; letter-spacing: 0.04em; text-transform: uppercase;
+}
+
+.btn-cta {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px;
+  background: var(--orange); color: #fff;
+  border-radius: var(--r-sm); border: none;
+  font-family: var(--font); font-size: 13px; font-weight: 700;
+  cursor: pointer; text-decoration: none; letter-spacing: -0.01em;
+  transition: background .15s, transform .1s; white-space: nowrap;
+}
+.btn-cta:hover { background: var(--orange-dark); }
+.btn-cta:active { transform: scale(0.97); }
+
+/* ── HERO ── */
+.hero {
+  background: linear-gradient(125deg, #2563EB 0%, #2563EB 40%, #3DBFA0 100%);
+  position: relative; overflow: hidden;
+  padding: 0 clamp(1rem, 4vw, 2.5rem);
+  opacity: 0; transform: translateY(12px);
+  animation: up .55s ease forwards .05s;
+}
+.hero::after {
+  content: '';
+  position: absolute; bottom: -2px; left: 0; right: 0; height: 50px;
+  background: var(--bg);
+  clip-path: ellipse(56% 100% at 50% 100%);
+  pointer-events: none;
+}
+
+.hero-inner {
+  max-width: 1240px; margin: 0 auto;
+  padding: clamp(2.5rem, 5vw, 4rem) 0 clamp(3rem, 5vw, 4.5rem);
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 2rem; align-items: center;
+}
+@media (max-width: 700px) {
+  .hero-inner { grid-template-columns: 1fr; }
+  .hero-visual { display: none; }
+}
+
+.hero-label {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11.5px; font-weight: 600; letter-spacing: 0.1em;
+  text-transform: uppercase; color: rgba(255,255,255,0.7);
+  margin-bottom: 14px;
+}
+.hero-title {
+  font-size: clamp(2rem, 3.5vw, 3rem);
+  font-weight: 900; letter-spacing: -0.04em; line-height: 1.05;
+  color: #fff; margin-bottom: 14px;
+}
+.hero-sub {
+  font-size: 15px; font-weight: 400; color: rgba(255,255,255,0.82);
+  line-height: 1.65; max-width: 400px; margin-bottom: 2rem;
+}
+.hero-sub strong { color: #fff; font-weight: 700; }
+
+.hero-stats {
+  display: flex; gap: 2rem; align-items: center;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255,255,255,0.2);
+  margin-top: 2rem;
+}
+.h-stat-val {
+  font-size: 2.2rem; font-weight: 900;
+  letter-spacing: -0.05em; color: #fff; line-height: 1; margin-bottom: 2px;
+}
+.h-stat-lbl {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.07em;
+  text-transform: uppercase; color: rgba(255,255,255,0.6);
+}
+.h-stat-div { width: 1px; height: 36px; background: rgba(255,255,255,0.2); }
+
+.hero-visual { display: flex; align-items: center; justify-content: flex-end; }
+.hero-img-frame {
+  width: 100%; max-width: 380px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 16px; padding: 1.25rem;
+  backdrop-filter: blur(8px);
+}
+.hero-img-frame svg { width: 100%; display: block; }
+
+/* ── UPSELL CARD ── */
+.upsell-wrap {
+  max-width: 1240px; margin: 0 auto;
+  padding: 1.5rem clamp(1rem, 4vw, 2.5rem) 0;
+  opacity: 0; animation: up .55s ease forwards .15s;
+}
+
+.upsell-card {
+  background: linear-gradient(135deg, #fff7ed 0%, #fff 60%);
+  border: 1.5px solid var(--demo-border);
+  border-radius: var(--r);
+  padding: 1.1rem 1.25rem;
+  display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+  position: relative; overflow: hidden;
+}
+.upsell-card::before {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+  background: var(--orange);
+}
+
+.upsell-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: var(--orange-bg); border: 1px solid var(--orange-border);
+  display: grid; place-items: center; flex-shrink: 0; color: var(--orange);
+}
+.upsell-text { flex: 1; min-width: 200px; }
+.upsell-text strong {
+  display: block; font-size: 14px; font-weight: 700; color: var(--ink);
+  margin-bottom: 2px; letter-spacing: -0.01em;
+}
+.upsell-text p { font-size: 13px; font-weight: 400; color: var(--ink-2); line-height: 1.5; }
+.upsell-text p a { color: var(--orange); font-weight: 600; text-decoration: none; }
+.upsell-text p a:hover { text-decoration: underline; }
+
+.upsell-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+
+.btn-upgrade {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 18px;
+  background: var(--orange); color: #fff;
+  border-radius: var(--r-sm); border: none;
+  font-family: var(--font); font-size: 13px; font-weight: 700;
+  cursor: pointer; text-decoration: none; letter-spacing: -0.01em;
+  transition: background .15s, transform .1s; white-space: nowrap;
+}
+.btn-upgrade:hover { background: var(--orange-dark); }
+.btn-upgrade:active { transform: scale(0.97); }
+
+.btn-ghost {
+  font-family: var(--font); font-size: 13px; font-weight: 500; color: var(--ink-3);
+  background: none; border: none; cursor: pointer; white-space: nowrap;
+  transition: color .15s; text-decoration: none;
+}
+.btn-ghost:hover { color: var(--ink); }
+
+/* Demo limit meter */
+.limit-meter {
+  display: flex; flex-direction: column; gap: 4px;
+  min-width: 130px; flex-shrink: 0;
+}
+.limit-labels {
+  display: flex; justify-content: space-between;
+  font-size: 11px; font-weight: 600; color: var(--ink-3);
+}
+.limit-labels span:last-child { color: var(--orange); font-weight: 700; }
+.limit-track {
+  height: 5px; background: var(--border); border-radius: 100px; overflow: hidden;
+}
+.limit-fill {
+  height: 100%; border-radius: 100px;
+  background: var(--orange);
+  width: 100%; /* 3/3 = 100% used */
+  transition: width .6s ease;
+}
+
+/* ── TOOLBAR ── */
+.toolbar {
+  max-width: 1240px; margin: 0 auto;
+  padding: 1.25rem clamp(1rem, 4vw, 2.5rem);
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  opacity: 0; animation: up .55s ease forwards .3s;
+}
+.f-btn {
+  font-family: var(--font); font-size: 12.5px; font-weight: 500;
+  padding: 6.5px 13px; border-radius: 100px;
+  border: 1px solid var(--border);
+  background: var(--surface); color: var(--ink-2);
+  cursor: pointer; letter-spacing: -.01em; transition: all .12s;
+}
+.f-btn:hover { border-color: var(--border-hi); color: var(--ink); }
+.f-btn.active { background: var(--ink); border-color: var(--ink); color: #fff; }
+.t-gap { flex: 1; min-width: 8px; }
+.search-box { position: relative; }
+.search-box input {
+  font-family: var(--font); font-size: 13px; font-weight: 400;
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--border); border-radius: var(--r-sm);
+  padding: 7.5px 13px 7.5px 34px;
+  outline: none; width: 210px;
+  transition: border-color .15s, box-shadow .15s;
+}
+.search-box input:focus {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 3px rgba(232,114,42,.12);
+}
+.search-box input::placeholder { color: var(--ink-3); }
+.search-ico {
+  position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+  color: var(--ink-3); pointer-events: none;
+}
+
+/* ── SECTION HEADER ── */
+.sec-head {
+  max-width: 1240px; margin: 0 auto;
+  padding: 0 clamp(1rem, 4vw, 2.5rem) 1rem;
+  display: flex; align-items: center; gap: 10px;
+  opacity: 0; animation: up .55s ease forwards .38s;
+}
+.sec-lbl {
+  font-size: 11px; font-weight: 700; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--ink-3); white-space: nowrap;
+}
+.sec-line { flex: 1; height: 1px; background: var(--border); }
+.sec-count { font-size: 11px; font-weight: 500; color: var(--ink-3); }
+
+/* ── GRID ── */
+.grid-wrap {
+  max-width: 1240px; margin: 0 auto;
+  padding: 0 clamp(1rem, 4vw, 2.5rem) 5rem;
+}
+.p-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.1rem;
+}
+
+/* ── CARD ── */
+.p-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r); overflow: hidden;
+  display: flex; flex-direction: column;
+  text-decoration: none; color: inherit;
+  box-shadow: var(--shadow-sm);
+  opacity: 0; transform: translateY(18px);
+  transition: transform .25s ease, box-shadow .25s ease, border-color .2s;
+}
+.p-card.vis { animation: up .48s cubic-bezier(.22,1,.36,1) forwards; }
+.p-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-lg); border-color: var(--border-hi); }
+
+/* locked card */
+.p-card.locked {
+  pointer-events: none;
+  opacity: 0.55;
+  filter: grayscale(0.4);
+}
+
+.p-thumb {
+  aspect-ratio: 16/9; background: var(--bg);
+  position: relative; overflow: hidden;
+  border-bottom: 1px solid var(--border);
+}
+.p-thumb img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%; object-fit: cover;
+  opacity: 0; transition: opacity .35s, transform .5s;
+}
+.p-thumb img.ok { opacity: 1; }
+.p-card:hover .p-thumb img { transform: scale(1.04); }
+
+.p-placeholder { position: absolute; inset: 0; transition: opacity .35s; }
+.p-placeholder.gone { opacity: 0; }
+.p-placeholder svg { width: 100%; height: 100%; display: block; }
+
+.p-phase {
+  position: absolute; top: 9px; left: 9px;
+  font-size: 10px; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; padding: 3px 8px; border-radius: 100px;
+}
+.p-active {
+  position: absolute; top: 9px; right: 9px;
+  display: flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 600; color: var(--teal-dark);
+  background: rgba(255,255,255,0.92);
+  border: 1px solid rgba(61,191,160,0.25);
+  padding: 3px 9px 3px 6px; border-radius: 100px;
+  backdrop-filter: blur(4px);
+}
+.p-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--teal);
+  animation: blink 2s ease-in-out infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+
+/* lock overlay on thumb */
+.p-lock-overlay {
+  position: absolute; inset: 0;
+  background: rgba(15,23,42,0.55);
+  display: grid; place-items: center;
+  backdrop-filter: blur(2px);
+}
+.p-lock-overlay svg { opacity: 0.9; }
+
+/* p-body */
+.p-body {
+  padding: 1rem 1rem .9rem;
+  display: flex; flex-direction: column; flex: 1;
+}
+.p-type {
+  font-size: 10.5px; font-weight: 600; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--ink-3); margin-bottom: 4px;
+}
+.p-title {
+  font-size: 16.5px; font-weight: 700; letter-spacing: -.025em;
+  line-height: 1.25; color: var(--ink); margin-bottom: 6px;
+}
+.p-desc {
+  font-size: 13px; font-weight: 400; color: var(--ink-2);
+  line-height: 1.6; flex: 1; margin-bottom: .75rem;
+}
+
+/* ── LOCATION ROW ── */
+.p-location {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 500; color: var(--ink-3);
+  margin-bottom: 1rem; text-decoration: none;
+  transition: color .15s;
+}
+.p-location:hover { color: var(--blue); }
+.p-location svg { flex-shrink: 0; }
+
+.p-divider { height: 1px; background: var(--border); margin-bottom: .85rem; }
+.p-footer { display: flex; align-items: center; justify-content: space-between; }
+.p-data { display: flex; gap: 1.25rem; }
+.d-item { display: flex; flex-direction: column; gap: 1px; }
+.d-lbl {
+  font-size: 9.5px; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.d-val { font-size: 12px; font-weight: 500; color: var(--ink-2); }
+
+.p-open {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 12.5px; font-weight: 700; color: var(--orange);
+  transition: gap .18s;
+}
+.p-card:hover .p-open { gap: 8px; }
+.open-btn {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--orange-bg); border: 1px solid var(--orange-border);
+  display: grid; place-items: center; flex-shrink: 0;
+  transition: background .15s;
+}
+.p-card:hover .open-btn { background: var(--orange); }
+.p-card:hover .open-btn svg { stroke: #fff; }
+
+/* locked upgrade prompt inside card */
+.p-upgrade-prompt {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 600; color: var(--orange);
+}
+
+/* ── EMPTY ── */
+.p-empty {
+  grid-column: 1/-1; padding: 4rem; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
+.e-icon {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--bg); display: grid; place-items: center; color: var(--ink-3);
+}
+.p-empty p { font-size: 13px; color: var(--ink-3); }
+
+/* ── FOOTER ── */
+.site-footer {
+  border-top: 1px solid var(--border); background: var(--surface);
+  padding: 1.25rem clamp(1rem, 4vw, 2.5rem);
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+}
+.f-brand { display: flex; align-items: center; gap: 7px; }
+.f-mark {
+  width: 26px; height: 26px;
+  background: linear-gradient(135deg, var(--blue) 0%, var(--teal) 100%);
+  border-radius: var(--r-sm); display: grid; place-items: center;
+}
+.f-name { font-size: 14px; font-weight: 900; letter-spacing: -.02em; text-transform: uppercase; color: var(--ink); }
+.f-copy { font-size: 12px; color: var(--ink-3); }
+
+/* ── ANIMS ── */
+@keyframes up { to { opacity: 1; transform: translateY(0); } }
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 3px; }
+
+@media (max-width: 520px) {
+  .p-grid { grid-template-columns: 1fr; }
+  .search-box input { width: 140px; }
+  .hero-stats { gap: 1.25rem; }
+  .upsell-card { flex-direction: column; align-items: flex-start; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── DEMO BANNER ── -->
+<div class="demo-banner">
+  <span class="demo-badge">
+    <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+      <path d="M8 1v6l3 3"/><circle cx="8" cy="8" r="7"/>
+    </svg>
+    Demo
+  </span>
+  <span class="demo-text">U gebruikt het <strong>gratis proefplan</strong> — uw 3 projecten zijn bereikt. Upgrade naar Monty Viewer voor onbeperkte toegang.</span>
+  <a class="demo-cta" href="https://montyviewer.com/contact/">
+    Nu upgraden
+    <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 8h10M9 4l4 4-4 4"/>
+    </svg>
+  </a>
+</div>
+
+<!-- ── TOPBAR ── -->
+<header class="topbar">
+  <a class="logo" href="https://montyviewer.com">
+    <div class="logo-icon">
+      <svg width="20" height="24" viewBox="0 0 20 24" fill="none">
+        <path d="M3 2L3 18L7 14L10 21L12.5 20L9.5 13L15 13L3 2Z" fill="white"/>
+      </svg>
+    </div>
+    <span class="logo-wordmark">MONTY</span>
+  </a>
+  <div class="topbar-right">
+    <span class="demo-pill">Demo plan</span>
+    <div class="client-chip">
+      <div class="chip-av">JM</div>
+      <span>JM Concepten</span>
+    </div>
+    <a class="btn-cta" href="https://montyviewer.com/contact/">Upgrade</a>
+  </div>
+</header>
+
+<!-- ── HERO ── -->
+<section class="hero">
+  <div class="hero-inner">
+    <div>
+      <p class="hero-label">JM Concepten — Projecten overzicht</p>
+      <h1 class="hero-title">Van ontwerp<br>tot montage.<br>Inzicht in elk detail</h1>
+      <p class="hero-sub">
+        <strong>Monty</strong> is jouw digitale bouwassistent. Selecteer een project om het 3D-model direct in de browser te bekijken.
+      </p>
+      <div class="hero-stats">
+        <div class="h-stat">
+          <div class="h-stat-val" id="stat-count">—</div>
+          <div class="h-stat-lbl">Projecten</div>
+        </div>
+        <div class="h-stat-div"></div>
+        <div class="h-stat">
+          <div class="h-stat-val" id="stat-active">—</div>
+          <div class="h-stat-lbl">Actief</div>
+        </div>
+        <div class="h-stat-div"></div>
+        <div class="h-stat">
+          <div class="h-stat-val" style="font-size:1.4rem;padding-top:4px;">Demo</div>
+          <div class="h-stat-lbl">Plan</div>
+        </div>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="hero-img-frame">
+        <svg viewBox="0 0 340 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="340" height="220" rx="8" fill="rgba(255,255,255,0.05)"/>
+          <g opacity="0.3" stroke="rgba(255,255,255,0.4)" stroke-width="0.5">
+            <line x1="20" y1="180" x2="320" y2="180"/>
+            <line x1="20" y1="160" x2="320" y2="160"/>
+            <line x1="20" y1="140" x2="320" y2="140"/>
+            <line x1="60" y1="120" x2="60" y2="200"/>
+            <line x1="120" y1="120" x2="120" y2="200"/>
+            <line x1="180" y1="120" x2="180" y2="200"/>
+            <line x1="240" y1="120" x2="240" y2="200"/>
+            <line x1="300" y1="120" x2="300" y2="200"/>
+          </g>
+          <rect x="80" y="60" width="100" height="120" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"/>
+          <polygon points="80,60 180,60 210,30 110,30" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"/>
+          <polygon points="180,60 210,30 210,150 180,180" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>
+          <rect x="210" y="90" width="70" height="90" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.4)" stroke-width="1"/>
+          <polygon points="210,90 280,90 300,72 230,72" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.4)" stroke-width="1"/>
+          <polygon points="280,90 300,72 300,162 280,180" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.35)" stroke-width="1"/>
+          <line x1="44" y1="60" x2="44" y2="180" stroke="#E8722A" stroke-width="1.5" stroke-dasharray="4,3"/>
+          <line x1="38" y1="60" x2="50" y2="60" stroke="#E8722A" stroke-width="1.5"/>
+          <line x1="38" y1="180" x2="50" y2="180" stroke="#E8722A" stroke-width="1.5"/>
+          <rect x="93" y="76" width="22" height="18" fill="rgba(61,191,160,0.35)" stroke="rgba(61,191,160,0.7)" stroke-width="1"/>
+          <rect x="123" y="76" width="22" height="18" fill="rgba(61,191,160,0.35)" stroke="rgba(61,191,160,0.7)" stroke-width="1"/>
+          <rect x="93" y="104" width="22" height="18" fill="rgba(61,191,160,0.25)" stroke="rgba(61,191,160,0.6)" stroke-width="1"/>
+          <rect x="123" y="104" width="22" height="18" fill="rgba(61,191,160,0.25)" stroke="rgba(61,191,160,0.6)" stroke-width="1"/>
+          <rect x="152" y="140" width="18" height="40" fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.6)" stroke-width="1"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── UPSELL CARD ── -->
+<div class="upsell-wrap">
+  <div class="upsell-card">
+    <div class="upsell-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+    </div>
+    <div class="upsell-text">
+      <strong>Projectlimiet bereikt — Demo plan (0 van 3 gratis projecten beschikbaar)</strong>
+      <p>Uw demotoegang is verbruikt. Upgrade naar <a href="https://montyviewer.com/contact/">Monty Viewer (€99/m)</a> voor 3 actieve projecten, of naar <a href="https://montyviewer.com/contact/">Monty Team (€179/m)</a> voor 4+ projecten met live engineering-inzicht.</p>
+    </div>
+    <div class="limit-meter">
+      <div class="limit-labels"><span>Projecten gebruikt</span><span>3 / 3</span></div>
+      <div class="limit-track"><div class="limit-fill"></div></div>
+    </div>
+    <div class="upsell-actions">
+      <a class="btn-upgrade" href="https://montyviewer.com/contact/">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 1v10M4 5l4-4 4 4"/>
+        </svg>
+        Plan upgraden
+      </a>
+      <a class="btn-ghost" href="https://montyviewer.com/contact/">Meer info</a>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOOLBAR ── -->
+<div class="toolbar">
+  <button class="f-btn active" data-filter="all">Alle</button>
+  <button class="f-btn" data-filter="gevels">Gevels</button>
+  <button class="f-btn" data-filter="wonen">Wonen</button>
+  <button class="f-btn" data-filter="utiliteitsbouw">Utiliteitsbouw</button>
+  <div class="t-gap"></div>
+  <div class="search-box">
+    <svg class="search-ico" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+    </svg>
+    <input id="search" type="text" placeholder="Zoeken…" autocomplete="off">
+  </div>
+</div>
+
+<!-- ── SECTION HEADER ── -->
+<div class="sec-head">
+  <span class="sec-lbl">Projecten</span>
+  <span class="sec-line"></span>
+  <span class="sec-count" id="result-count"></span>
+</div>
+
+<!-- ── GRID ── -->
+<main class="grid-wrap">
+  <div class="p-grid" id="grid"></div>
+</main>
+
+<!-- ── FOOTER ── -->
+<footer class="site-footer">
+  <div class="f-brand">
+    <div class="f-mark">
+      <svg width="14" height="17" viewBox="0 0 20 24" fill="none">
+        <path d="M3 2L3 18L7 14L10 21L12.5 20L9.5 13L15 13L3 2Z" fill="white"/>
+      </svg>
+    </div>
+    <span class="f-name">MONTY</span>
+  </div>
+  <span class="f-copy">BIM naar de bouwplaats · 3BM · Wattstraat 17, Zwijndrecht</span>
+</footer>
+
+<script>
+/* ─────────────────────────────────────────────────────────
+   DATA — JM Concepten
+   lat/lng ophalen uit ERPNext > Project > Adresgegevens
+   en invullen bij elk project hieronder.
+   ───────────────────────────────────────────────────────── */
+
+const FREE_LIMIT   = 3;   // Demo plan: max 3 projecten
+const CLIENT_NAME  = 'JM Concepten';
+
+const PROJECTS = (typeof window.PROJECTS !== 'undefined')
+  ? window.PROJECTS
+  : (() => {
+      const raw = new URLSearchParams(location.search).get('data');
+      if (raw) try { return JSON.parse(atob(raw)); } catch(e) {}
+      return [
+        {
+          id: "abc123def456",
+          title: "Westpoort Appartementen",
+          description: "Woongebouw 84 appartementen, prefab betongevels met aluminium kozijnen.",
+          type: "gevels", phase: "Uitvoering", updated: "2025-03-28",
+          elements: 1840, active: true,
+          // ← vul in vanuit ERPNext (Project > Locatie)
+          location: "Rotterdam", lat: 51.9225, lng: 4.4792,
+          speckleBase: "https://app.montyviewer.com"
+        },
+        {
+          id: "bcd234efg567",
+          title: "Kantoor De Brug",
+          description: "Utiliteitsbouw, 7 bouwlagen, glazen gevelscherm met zonweringlamellen.",
+          type: "utiliteitsbouw", phase: "DO", updated: "2025-03-15",
+          elements: 3210, active: true,
+          location: "Amsterdam", lat: 52.3676, lng: 4.9041,
+          speckleBase: "https://app.montyviewer.com"
+        },
+        {
+          id: "cde345fgh678",
+          title: "Rijhuis Oosterpark",
+          description: "17 rijwoningen, houten gevelbekleding, traditioneel metselwerk accent.",
+          type: "wonen", phase: "VO", updated: "2025-02-20",
+          elements: 490, active: false,
+          location: "Utrecht", lat: 52.0907, lng: 5.1214,
+          speckleBase: "https://app.montyviewer.com"
+        },
+        /* ── Projecten hieronder zijn VERGRENDELD (demo limiet) ── */
+        {
+          id: "def456ghi789",
+          title: "Logistiek Hub Schiphol",
+          description: "Industrieel distributiecentrum, sandwichpanelen gevelconstructie.",
+          type: "utiliteitsbouw", phase: "AO", updated: "2025-01-05",
+          elements: 870, active: false,
+          location: "Hoofddorp", lat: 52.3057, lng: 4.6921,
+          speckleBase: "https://app.montyviewer.com"
+        },
+        {
+          id: "efg567hij890",
+          title: "Zorgcomplex Meander",
+          description: "Zorgfaciliteit 120 bedden, keramische tegel gevelbekleding.",
+          type: "gevels", phase: "Uitvoering", updated: "2025-03-30",
+          elements: 2650, active: true,
+          location: "Amersfoort", lat: 52.1561, lng: 5.3878,
+          speckleBase: "https://app.montyviewer.com"
+        },
+        {
+          id: "fgh678ijk901",
+          title: "Studentenhuisvesting Noord",
+          description: "320 studio's, prefab gevelmodules met houtfineer accenten.",
+          type: "wonen", phase: "DO", updated: "2025-03-10",
+          elements: 1120, active: true,
+          location: "Groningen", lat: 53.2194, lng: 6.5665,
+          speckleBase: "https://app.montyviewer.com"
+        }
+      ];
+    })();
+
+const PHASE = {
+  Uitvoering: { bg:"#ECFDF5", color:"#065F46", border:"rgba(5,150,105,.2)"  },
+  DO:         { bg:"#F5F3FF", color:"#4C1D95", border:"rgba(124,58,237,.2)" },
+  VO:         { bg:"#FFFBEB", color:"#78350F", border:"rgba(245,158,11,.25)"},
+  AO:         { bg:"#F1F5F9", color:"#334155", border:"rgba(100,116,139,.2)"},
+};
+
+const fmtDate = iso => new Date(iso).toLocaleDateString('nl-NL', { day:'numeric', month:'short', year:'numeric' });
+const fmtNum  = n => n ? n.toLocaleString('nl-NL') : '—';
+
+function mapsUrl(lat, lng, label) {
+  return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}&query_place_id=${encodeURIComponent(label)}`;
+}
+
+function mkPlaceholder(proj) {
+  const h = [...proj.id].reduce((a,c) => a + c.charCodeAt(0), 0);
+  const hues = [
+    ['#EFF6FF','#BFDBFE'], ['#F0FDF4','#BBF7D0'],
+    ['#F5F3FF','#DDD6FE'], ['#FFF7ED','#FED7AA'], ['#ECFEFF','#A5F3FC'],
+  ];
+  const [bg, stroke] = hues[h % hues.length];
+  const ox=110+(h%60), oy=40+(h%30), w=90+(h%40), d=28+(h%14), ht=70+(h%30);
+  return `<svg viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
+    <rect width="320" height="180" fill="${bg}"/>
+    <defs><pattern id="p${h%9999}" width="18" height="18" patternUnits="userSpaceOnUse">
+      <path d="M18 0L0 0 0 18" fill="none" stroke="${stroke}" stroke-width="0.4" opacity="0.6"/>
+    </pattern></defs>
+    <rect width="320" height="180" fill="url(#p${h%9999})"/>
+    <rect x="${ox}" y="${oy+d}" width="${w}" height="${ht}" fill="white" fill-opacity="0.7" stroke="${stroke}" stroke-width="1.2"/>
+    <polygon points="${ox},${oy+d} ${ox+w},${oy+d} ${ox+w+d},${oy} ${ox+d},${oy}" fill="white" fill-opacity="0.5" stroke="${stroke}" stroke-width="1.2"/>
+    <polygon points="${ox+w},${oy+d} ${ox+w+d},${oy} ${ox+w+d},${oy+ht} ${ox+w},${oy+ht+d}" fill="white" fill-opacity="0.3" stroke="${stroke}" stroke-width="1.2"/>
+    <line x1="${ox-12}" y1="${oy+d}" x2="${ox-12}" y2="${oy+ht+d}" stroke="#E8722A" stroke-width="1" stroke-dasharray="3,2" opacity="0.7"/>
+    <text x="160" y="172" text-anchor="middle" fill="${stroke}" font-family="Outfit,sans-serif" font-size="8" font-weight="700" letter-spacing="0.14em" opacity="0.8">${proj.id.slice(0,14).toUpperCase()}</text>
+  </svg>`;
+}
+
+function mkCard(proj, idx, delay) {
+  const locked  = idx >= FREE_LIMIT;
+  const ps      = PHASE[proj.phase] || PHASE.AO;
+  const hasCoords = proj.lat && proj.lng;
+  const mapUrl  = hasCoords ? mapsUrl(proj.lat, proj.lng, proj.title) : null;
+
+  const card = document.createElement(locked ? 'div' : 'a');
+  if (!locked) card.href = `/?project=${proj.id}`;
+  card.className = 'p-card' + (locked ? ' locked' : '');
+  card.style.animationDelay = `${delay}ms`;
+  card.dataset.type = proj.type;
+
+  const locationHTML = proj.location
+    ? (mapUrl && !locked)
+      ? `<a class="p-location" href="${mapUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">
+           <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+             <path d="M8 1C5.24 1 3 3.24 3 6c0 4 5 9 5 9s5-5 5-9c0-2.76-2.24-5-5-5z"/><circle cx="8" cy="6" r="2"/>
+           </svg>
+           ${proj.location}
+         </a>`
+      : `<span class="p-location">
+           <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+             <path d="M8 1C5.24 1 3 3.24 3 6c0 4 5 9 5 9s5-5 5-9c0-2.76-2.24-5-5-5z"/><circle cx="8" cy="6" r="2"/>
+           </svg>
+           ${proj.location}
+         </span>`
+    : '';
+
+  const footerRight = locked
+    ? `<div class="p-upgrade-prompt">
+         <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="#E8722A" stroke-width="2" stroke-linecap="round">
+           <rect x="2" y="7" width="12" height="8" rx="1.5"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/>
+         </svg>
+         <a href="https://montyviewer.com/contact/" style="color:var(--orange);font-size:12px;font-weight:700;text-decoration:none;">Upgrade om te openen</a>
+       </div>`
+    : `<div class="p-open">
+         Bekijk
+         <div class="open-btn">
+           <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="#E8722A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+             <path d="M3 8h10M9 4l4 4-4 4"/>
+           </svg>
+         </div>
+       </div>`;
+
+  card.innerHTML = `
+    <div class="p-thumb">
+      <img alt="${proj.title}">
+      <div class="p-placeholder">${mkPlaceholder(proj)}</div>
+      <span class="p-phase" style="background:${ps.bg};color:${ps.color};border:1px solid ${ps.border};">${proj.phase}</span>
+      ${proj.active && !locked ? `<span class="p-active"><span class="p-dot"></span>Actief</span>` : ''}
+      ${locked ? `<div class="p-lock-overlay">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round">
+          <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </div>` : ''}
+    </div>
+    <div class="p-body">
+      <p class="p-type">${proj.type}</p>
+      <h2 class="p-title">${proj.title}</h2>
+      <p class="p-desc">${proj.description}</p>
+      ${locationHTML}
+      <div class="p-divider"></div>
+      <div class="p-footer">
+        <div class="p-data">
+          <div class="d-item">
+            <span class="d-lbl">Bijgewerkt</span>
+            <span class="d-val">${fmtDate(proj.updated)}</span>
+          </div>
+          ${proj.elements ? `<div class="d-item"><span class="d-lbl">Elementen</span><span class="d-val">${fmtNum(proj.elements)}</span></div>` : ''}
+        </div>
+        ${footerRight}
+      </div>
+    </div>`;
+
+  if (!locked) {
+    const img = card.querySelector('img');
+    const ph  = card.querySelector('.p-placeholder');
+    img.src = `${proj.speckleBase}/preview/${proj.id}`;
+    img.onload  = () => { img.classList.add('ok'); ph.classList.add('gone'); };
+    img.onerror = () => {};
+  }
+  return card;
+}
+
+(function() {
+  document.getElementById('stat-count').textContent  = PROJECTS.length;
+  document.getElementById('stat-active').textContent = PROJECTS.filter(x => x.active).length;
+
+  const grid    = document.getElementById('grid');
+  const countEl = document.getElementById('result-count');
+  let fil = 'all', q = '';
+
+  function draw(list) {
+    grid.innerHTML = '';
+    countEl.textContent = list.length + ' resultaten';
+    if (!list.length) {
+      const e = document.createElement('div');
+      e.className = 'p-empty';
+      e.innerHTML = `<div class="e-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div><p>Geen projecten gevonden</p>`;
+      grid.appendChild(e); return;
+    }
+    list.forEach((pr, i) => {
+      // locked status is based on original index, not filtered index
+      const origIdx = PROJECTS.indexOf(pr);
+      const c = mkCard(pr, origIdx, i * 50);
+      grid.appendChild(c);
+      requestAnimationFrame(() => requestAnimationFrame(() => c.classList.add('vis')));
+    });
+  }
+
+  function apply() {
+    draw(PROJECTS.filter(pr =>
+      (fil === 'all' || pr.type === fil) &&
+      (!q || (pr.title + ' ' + pr.description + ' ' + (pr.location||'')).toLowerCase().includes(q))
+    ));
+  }
+
+  document.querySelectorAll('.f-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.f-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      fil = btn.dataset.filter;
+      apply();
+    });
+  });
+
+  document.getElementById('search').addEventListener('input', e => {
+    q = e.target.value.toLowerCase().trim();
+    apply();
+  });
+
+  draw(PROJECTS);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monty — Projecten</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --blue:          #2563EB;
+  --blue-dark:     #1D4ED8;
+  --teal:          #3DBFA0;
+  --teal-dark:     #2D9E85;
+  --orange:        #E8722A;
+  --orange-dark:   #C95E18;
+  --orange-bg:     #FEF0E7;
+  --orange-border: rgba(232,114,42,0.22);
+
+  --bg:       #F4F6F9;
+  --surface:  #FFFFFF;
+  --border:   #E2E8F0;
+  --border-hi:#CBD5E1;
+  --ink:      #0F172A;
+  --ink-2:    #475569;
+  --ink-3:    #94A3B8;
+
+  --demo-bg:     #FFF7ED;
+  --demo-border: #FED7AA;
+  --demo-ink:    #9A3412;
+  --demo-accent: #EA580C;
+
+  --font: 'Outfit', sans-serif;
+  --r:    12px;
+  --r-sm: 7px;
+  --shadow-sm: 0 1px 3px rgba(15,23,42,.07), 0 1px 2px rgba(15,23,42,.04);
+  --shadow-lg: 0 20px 50px rgba(15,23,42,.14), 0 4px 12px rgba(15,23,42,.07);
+}
+
+html, body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* -- DEMO BANNER -- */
+.demo-banner {
+  background: var(--demo-bg);
+  border-bottom: 1px solid var(--demo-border);
+  padding: 9px clamp(1rem, 4vw, 2.5rem);
+  display: none; align-items: center; justify-content: center; gap: 12px;
+  flex-wrap: wrap;
+}
+.demo-banner.show { display: flex; }
+.demo-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--demo-accent); color: #fff;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.08em;
+  text-transform: uppercase; padding: 2px 8px; border-radius: 100px;
+}
+.demo-text { font-size: 13px; font-weight: 500; color: var(--demo-ink); }
+.demo-text strong { font-weight: 700; }
+.demo-cta {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--demo-accent); color: #fff;
+  font-family: var(--font); font-size: 12px; font-weight: 700;
+  padding: 6px 14px; border-radius: var(--r-sm); border: none;
+  cursor: pointer; text-decoration: none; white-space: nowrap;
+  transition: background .15s, transform .1s;
+}
+.demo-cta:hover { background: #c2410c; }
+.demo-cta:active { transform: scale(0.97); }
+
+/* -- TOPBAR -- */
+.topbar {
+  position: sticky; top: 0; z-index: 200;
+  height: 60px;
+  background: rgba(37,99,235,0.97);
+  backdrop-filter: blur(12px);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 clamp(1rem, 4vw, 2.5rem);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.logo { display: flex; align-items: center; gap: 6px; text-decoration: none; }
+.logo-icon { width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; }
+.logo-wordmark {
+  font-size: 19px; font-weight: 900; letter-spacing: -0.03em;
+  color: #fff; line-height: 1; text-transform: uppercase;
+}
+.topbar-right { display: flex; align-items: center; gap: 8px; }
+.client-chip {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 12px 5px 6px;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 100px;
+  font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.9);
+}
+.chip-av {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--orange); color: #fff;
+  display: grid; place-items: center;
+  font-size: 8.5px; font-weight: 800; letter-spacing: 0.03em;
+}
+.demo-pill {
+  display: none; align-items: center; gap: 4px;
+  background: rgba(234,88,12,0.25);
+  border: 1px solid rgba(234,88,12,0.4);
+  border-radius: 100px;
+  font-size: 10.5px; font-weight: 700; color: #FDBA74;
+  padding: 3px 9px; letter-spacing: 0.04em; text-transform: uppercase;
+}
+.demo-pill.show { display: inline-flex; }
+.btn-cta {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px;
+  background: var(--orange); color: #fff;
+  border-radius: var(--r-sm); border: none;
+  font-family: var(--font); font-size: 13px; font-weight: 700;
+  cursor: pointer; text-decoration: none; letter-spacing: -0.01em;
+  transition: background .15s, transform .1s; white-space: nowrap;
+}
+.btn-cta:hover { background: var(--orange-dark); }
+.btn-cta:active { transform: scale(0.97); }
+
+/* -- HERO -- */
+.hero {
+  background: linear-gradient(125deg, #2563EB 0%, #2563EB 40%, #3DBFA0 100%);
+  position: relative; overflow: hidden;
+  padding: 0 clamp(1rem, 4vw, 2.5rem);
+  opacity: 0; transform: translateY(12px);
+  animation: up .55s ease forwards .05s;
+}
+.hero::after {
+  content: '';
+  position: absolute; bottom: -2px; left: 0; right: 0; height: 50px;
+  background: var(--bg);
+  clip-path: ellipse(56% 100% at 50% 100%);
+  pointer-events: none;
+}
+.hero-inner {
+  max-width: 1240px; margin: 0 auto;
+  padding: clamp(2.5rem, 5vw, 4rem) 0 clamp(3rem, 5vw, 4.5rem);
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 2rem; align-items: center;
+}
+@media (max-width: 700px) {
+  .hero-inner { grid-template-columns: 1fr; }
+  .hero-visual { display: none; }
+}
+.hero-label {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11.5px; font-weight: 600; letter-spacing: 0.1em;
+  text-transform: uppercase; color: rgba(255,255,255,0.7); margin-bottom: 14px;
+}
+.hero-title {
+  font-size: clamp(2rem, 3.5vw, 3rem);
+  font-weight: 900; letter-spacing: -0.04em; line-height: 1.05;
+  color: #fff; margin-bottom: 14px;
+}
+.hero-sub {
+  font-size: 15px; font-weight: 400; color: rgba(255,255,255,0.82);
+  line-height: 1.65; max-width: 400px; margin-bottom: 2rem;
+}
+.hero-sub strong { color: #fff; font-weight: 700; }
+.hero-stats {
+  display: flex; gap: 2rem; align-items: center;
+  padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.2); margin-top: 2rem;
+}
+.h-stat-val {
+  font-size: 2.2rem; font-weight: 900; letter-spacing: -0.05em;
+  color: #fff; line-height: 1; margin-bottom: 2px;
+}
+.h-stat-lbl {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.07em;
+  text-transform: uppercase; color: rgba(255,255,255,0.6);
+}
+.h-stat-div { width: 1px; height: 36px; background: rgba(255,255,255,0.2); }
+.hero-visual { display: flex; align-items: center; justify-content: flex-end; }
+.hero-img-frame {
+  width: 100%; max-width: 380px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 16px; padding: 1.25rem; backdrop-filter: blur(8px);
+}
+.hero-img-frame svg { width: 100%; display: block; }
+
+/* -- UPSELL CARD -- */
+.upsell-wrap {
+  max-width: 1240px; margin: 0 auto;
+  padding: 1.5rem clamp(1rem, 4vw, 2.5rem) 0;
+  opacity: 0; animation: up .55s ease forwards .15s;
+  display: none;
+}
+.upsell-wrap.show { display: block; }
+.upsell-card {
+  background: linear-gradient(135deg, #fff7ed 0%, #fff 60%);
+  border: 1.5px solid var(--demo-border);
+  border-radius: var(--r); padding: 1.1rem 1.25rem;
+  display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+  position: relative; overflow: hidden;
+}
+.upsell-card::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 4px; background: var(--orange);
+}
+.upsell-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: var(--orange-bg); border: 1px solid var(--orange-border);
+  display: grid; place-items: center; flex-shrink: 0; color: var(--orange);
+}
+.upsell-text { flex: 1; min-width: 200px; }
+.upsell-text strong { display: block; font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 2px; }
+.upsell-text p { font-size: 13px; font-weight: 400; color: var(--ink-2); line-height: 1.5; }
+.upsell-text p a { color: var(--orange); font-weight: 600; text-decoration: none; }
+.upsell-text p a:hover { text-decoration: underline; }
+.upsell-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+.btn-upgrade {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 18px; background: var(--orange); color: #fff;
+  border-radius: var(--r-sm); border: none;
+  font-family: var(--font); font-size: 13px; font-weight: 700;
+  cursor: pointer; text-decoration: none; transition: background .15s, transform .1s; white-space: nowrap;
+}
+.btn-upgrade:hover { background: var(--orange-dark); }
+.btn-upgrade:active { transform: scale(0.97); }
+.btn-ghost {
+  font-family: var(--font); font-size: 13px; font-weight: 500; color: var(--ink-3);
+  background: none; border: none; cursor: pointer; white-space: nowrap;
+  transition: color .15s; text-decoration: none;
+}
+.btn-ghost:hover { color: var(--ink); }
+.limit-meter { display: flex; flex-direction: column; gap: 4px; min-width: 130px; }
+.limit-labels { display: flex; justify-content: space-between; font-size: 11px; font-weight: 600; color: var(--ink-3); }
+.limit-labels span:last-child { color: var(--orange); font-weight: 700; }
+.limit-track { height: 5px; background: var(--border); border-radius: 100px; overflow: hidden; }
+.limit-fill { height: 100%; border-radius: 100px; background: var(--orange); transition: width .6s ease; }
+
+/* -- TOOLBAR -- */
+.toolbar {
+  max-width: 1240px; margin: 0 auto;
+  padding: 1.25rem clamp(1rem, 4vw, 2.5rem);
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  opacity: 0; animation: up .55s ease forwards .3s;
+}
+.f-btn {
+  font-family: var(--font); font-size: 12.5px; font-weight: 500;
+  padding: 6.5px 13px; border-radius: 100px;
+  border: 1px solid var(--border); background: var(--surface); color: var(--ink-2);
+  cursor: pointer; letter-spacing: -.01em; transition: all .12s;
+}
+.f-btn:hover { border-color: var(--border-hi); color: var(--ink); }
+.f-btn.active { background: var(--ink); border-color: var(--ink); color: #fff; }
+.t-gap { flex: 1; min-width: 8px; }
+.search-box { position: relative; }
+.search-box input {
+  font-family: var(--font); font-size: 13px; font-weight: 400;
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--border); border-radius: var(--r-sm);
+  padding: 7.5px 13px 7.5px 34px; outline: none; width: 210px;
+  transition: border-color .15s, box-shadow .15s;
+}
+.search-box input:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(232,114,42,.12); }
+.search-box input::placeholder { color: var(--ink-3); }
+.search-ico { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--ink-3); pointer-events: none; }
+
+/* -- SECTION HEADER -- */
+.sec-head {
+  max-width: 1240px; margin: 0 auto;
+  padding: 0 clamp(1rem, 4vw, 2.5rem) 1rem;
+  display: flex; align-items: center; gap: 10px;
+  opacity: 0; animation: up .55s ease forwards .38s;
+}
+.sec-lbl { font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-3); white-space: nowrap; }
+.sec-line { flex: 1; height: 1px; background: var(--border); }
+.sec-count { font-size: 11px; font-weight: 500; color: var(--ink-3); }
+
+/* -- GRID -- */
+.grid-wrap { max-width: 1240px; margin: 0 auto; padding: 0 clamp(1rem, 4vw, 2.5rem) 5rem; }
+.p-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.1rem; }
+
+/* -- CARD -- */
+.p-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); overflow: hidden;
+  display: flex; flex-direction: column;
+  text-decoration: none; color: inherit;
+  box-shadow: var(--shadow-sm);
+  opacity: 0; transform: translateY(18px);
+  transition: transform .25s ease, box-shadow .25s ease, border-color .2s;
+}
+.p-card.vis { animation: up .48s cubic-bezier(.22,1,.36,1) forwards; }
+.p-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-lg); border-color: var(--border-hi); }
+.p-card.locked { pointer-events: none; opacity: 0.55; filter: grayscale(0.4); }
+
+.p-thumb {
+  aspect-ratio: 16/9; background: var(--bg);
+  position: relative; overflow: hidden;
+  border-bottom: 1px solid var(--border);
+}
+.p-thumb img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  opacity: 0; transition: opacity .35s, transform .5s;
+}
+.p-thumb img.ok { opacity: 1; }
+.p-card:hover .p-thumb img { transform: scale(1.04); }
+.p-placeholder { position: absolute; inset: 0; transition: opacity .35s; }
+.p-placeholder.gone { opacity: 0; }
+.p-placeholder svg { width: 100%; height: 100%; display: block; }
+.p-phase {
+  position: absolute; top: 9px; left: 9px;
+  font-size: 10px; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; padding: 3px 8px; border-radius: 100px;
+}
+.p-active {
+  position: absolute; top: 9px; right: 9px;
+  display: flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 600; color: var(--teal-dark);
+  background: rgba(255,255,255,0.92);
+  border: 1px solid rgba(61,191,160,0.25);
+  padding: 3px 9px 3px 6px; border-radius: 100px; backdrop-filter: blur(4px);
+}
+.p-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--teal); animation: blink 2s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+.p-lock-overlay {
+  position: absolute; inset: 0;
+  background: rgba(15,23,42,0.55);
+  display: grid; place-items: center; backdrop-filter: blur(2px);
+}
+.p-lock-overlay svg { opacity: 0.9; }
+
+.p-body { padding: 1rem 1rem .9rem; display: flex; flex-direction: column; flex: 1; }
+.p-type { font-size: 10.5px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 4px; }
+.p-title { font-size: 16.5px; font-weight: 700; letter-spacing: -.025em; line-height: 1.25; color: var(--ink); margin-bottom: 6px; }
+.p-desc { font-size: 13px; font-weight: 400; color: var(--ink-2); line-height: 1.6; flex: 1; margin-bottom: .75rem; }
+.p-location {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 500; color: var(--ink-3);
+  margin-bottom: 1rem; text-decoration: none; transition: color .15s;
+}
+.p-location:hover { color: var(--blue); }
+.p-location svg { flex-shrink: 0; }
+.p-divider { height: 1px; background: var(--border); margin-bottom: .85rem; }
+.p-footer { display: flex; align-items: center; justify-content: space-between; }
+.p-data { display: flex; gap: 1.25rem; }
+.d-item { display: flex; flex-direction: column; gap: 1px; }
+.d-lbl { font-size: 9.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.d-val { font-size: 12px; font-weight: 500; color: var(--ink-2); }
+.p-open { display: flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 700; color: var(--orange); transition: gap .18s; }
+.p-card:hover .p-open { gap: 8px; }
+.open-btn {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--orange-bg); border: 1px solid var(--orange-border);
+  display: grid; place-items: center; flex-shrink: 0; transition: background .15s;
+}
+.p-card:hover .open-btn { background: var(--orange); }
+.p-card:hover .open-btn svg { stroke: #fff; }
+.p-upgrade-prompt { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--orange); }
+
+/* -- EMPTY -- */
+.p-empty { grid-column: 1/-1; padding: 4rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.e-icon { width: 44px; height: 44px; border-radius: 50%; background: var(--bg); display: grid; place-items: center; color: var(--ink-3); }
+.p-empty p { font-size: 13px; color: var(--ink-3); }
+
+/* -- FOOTER -- */
+.site-footer {
+  border-top: 1px solid var(--border); background: var(--surface);
+  padding: 1.25rem clamp(1rem, 4vw, 2.5rem);
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+}
+.f-brand { display: flex; align-items: center; gap: 7px; }
+.f-mark {
+  width: 26px; height: 26px;
+  background: linear-gradient(135deg, var(--blue) 0%, var(--teal) 100%);
+  border-radius: var(--r-sm); display: grid; place-items: center;
+}
+.f-name { font-size: 14px; font-weight: 900; letter-spacing: -.02em; text-transform: uppercase; color: var(--ink); }
+.f-copy { font-size: 12px; color: var(--ink-3); }
+
+@keyframes up { to { opacity: 1; transform: translateY(0); } }
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 3px; }
+
+@media (max-width: 520px) {
+  .p-grid { grid-template-columns: 1fr; }
+  .search-box input { width: 140px; }
+  .hero-stats { gap: 1.25rem; }
+  .upsell-card { flex-direction: column; align-items: flex-start; }
+}
+</style>
+</head>
+<body>
+
+<!-- DEMO BANNER (shown when limit reached) -->
+<div class="demo-banner" id="demo-banner">
+  <span class="demo-badge">
+    <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M8 1v6l3 3"/><circle cx="8" cy="8" r="7"/></svg>
+    Demo
+  </span>
+  <span class="demo-text">U gebruikt het <strong>gratis proefplan</strong> — uw projectlimiet is bereikt. Upgrade naar Monty Viewer voor onbeperkte toegang.</span>
+  <a class="demo-cta" href="https://montyviewer.com/contact/">
+    Nu upgraden
+    <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+  </a>
+</div>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <a class="logo" href="/">
+    <div class="logo-icon">
+      <svg width="20" height="24" viewBox="0 0 20 24" fill="none"><path d="M3 2L3 18L7 14L10 21L12.5 20L9.5 13L15 13L3 2Z" fill="white"/></svg>
+    </div>
+    <span class="logo-wordmark">MONTY</span>
+  </a>
+  <div class="topbar-right">
+    <span class="demo-pill" id="demo-pill">Demo plan</span>
+    <div class="client-chip">
+      <div class="chip-av" id="chip-av">&mdash;</div>
+      <span id="chip-name">laden&hellip;</span>
+    </div>
+    <a class="btn-cta" id="topbar-cta" href="https://montyviewer.com/contact/">Upgrade</a>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-inner">
+    <div>
+      <p class="hero-label" id="hero-label">Projecten overzicht</p>
+      <h1 class="hero-title">Van ontwerp<br>tot montage.<br>Inzicht in elk detail</h1>
+      <p class="hero-sub"><strong>Monty</strong> is jouw digitale bouwassistent. Selecteer een project om het 3D-model direct in de browser te bekijken.</p>
+      <div class="hero-stats">
+        <div class="h-stat">
+          <div class="h-stat-val" id="stat-count">&mdash;</div>
+          <div class="h-stat-lbl">Projecten</div>
+        </div>
+        <div class="h-stat-div"></div>
+        <div class="h-stat">
+          <div class="h-stat-val" id="stat-active">&mdash;</div>
+          <div class="h-stat-lbl">Actief</div>
+        </div>
+        <div class="h-stat-div"></div>
+        <div class="h-stat">
+          <div class="h-stat-val" id="stat-plan">&mdash;</div>
+          <div class="h-stat-lbl">Plan</div>
+        </div>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="hero-img-frame">
+        <svg viewBox="0 0 340 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="340" height="220" rx="8" fill="rgba(255,255,255,0.05)"/>
+          <g opacity="0.3" stroke="rgba(255,255,255,0.4)" stroke-width="0.5">
+            <line x1="20" y1="180" x2="320" y2="180"/><line x1="20" y1="160" x2="320" y2="160"/><line x1="20" y1="140" x2="320" y2="140"/>
+            <line x1="60" y1="120" x2="60" y2="200"/><line x1="120" y1="120" x2="120" y2="200"/><line x1="180" y1="120" x2="180" y2="200"/><line x1="240" y1="120" x2="240" y2="200"/><line x1="300" y1="120" x2="300" y2="200"/>
+          </g>
+          <rect x="80" y="60" width="100" height="120" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"/>
+          <polygon points="80,60 180,60 210,30 110,30" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"/>
+          <polygon points="180,60 210,30 210,150 180,180" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>
+          <rect x="210" y="90" width="70" height="90" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.4)" stroke-width="1"/>
+          <polygon points="210,90 280,90 300,72 230,72" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.4)" stroke-width="1"/>
+          <polygon points="280,90 300,72 300,162 280,180" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.35)" stroke-width="1"/>
+          <line x1="44" y1="60" x2="44" y2="180" stroke="#E8722A" stroke-width="1.5" stroke-dasharray="4,3"/>
+          <line x1="38" y1="60" x2="50" y2="60" stroke="#E8722A" stroke-width="1.5"/><line x1="38" y1="180" x2="50" y2="180" stroke="#E8722A" stroke-width="1.5"/>
+          <rect x="93" y="76" width="22" height="18" fill="rgba(61,191,160,0.35)" stroke="rgba(61,191,160,0.7)" stroke-width="1"/>
+          <rect x="123" y="76" width="22" height="18" fill="rgba(61,191,160,0.35)" stroke="rgba(61,191,160,0.7)" stroke-width="1"/>
+          <rect x="93" y="104" width="22" height="18" fill="rgba(61,191,160,0.25)" stroke="rgba(61,191,160,0.6)" stroke-width="1"/>
+          <rect x="123" y="104" width="22" height="18" fill="rgba(61,191,160,0.25)" stroke="rgba(61,191,160,0.6)" stroke-width="1"/>
+          <rect x="152" y="140" width="18" height="40" fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.6)" stroke-width="1"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- UPSELL CARD (shown when limit reached) -->
+<div class="upsell-wrap" id="upsell-wrap">
+  <div class="upsell-card">
+    <div class="upsell-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </div>
+    <div class="upsell-text" id="upsell-text"></div>
+    <div class="limit-meter">
+      <div class="limit-labels"><span>Projecten gebruikt</span><span id="limit-label"></span></div>
+      <div class="limit-track"><div class="limit-fill" id="limit-fill"></div></div>
+    </div>
+    <div class="upsell-actions">
+      <a class="btn-upgrade" href="https://montyviewer.com/contact/">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1v10M4 5l4-4 4 4"/></svg>
+        Plan upgraden
+      </a>
+      <a class="btn-ghost" href="https://montyviewer.com/contact/">Meer info</a>
+    </div>
+  </div>
+</div>
+
+<!-- TOOLBAR (dynamic) -->
+<div class="toolbar" id="toolbar"></div>
+
+<!-- SECTION HEADER -->
+<div class="sec-head">
+  <span class="sec-lbl">Projecten</span>
+  <span class="sec-line"></span>
+  <span class="sec-count" id="result-count"></span>
+</div>
+
+<!-- GRID -->
+<main class="grid-wrap">
+  <div class="p-grid" id="grid"></div>
+</main>
+
+<!-- FOOTER -->
+<footer class="site-footer">
+  <div class="f-brand">
+    <div class="f-mark">
+      <svg width="14" height="17" viewBox="0 0 20 24" fill="none"><path d="M3 2L3 18L7 14L10 21L12.5 20L9.5 13L15 13L3 2Z" fill="white"/></svg>
+    </div>
+    <span class="f-name">MONTY</span>
+  </div>
+  <span class="f-copy">BIM naar de bouwplaats &middot; 3BM &middot; Wattstraat 17, Zwijndrecht</span>
+</footer>
+
+<script type="module" src="../src/landing/main.ts"></script>
+</body>
+</html>

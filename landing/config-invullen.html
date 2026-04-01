@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MontyViewer — Config invullen</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Outfit', sans-serif; background: #F4F6F9; color: #0F172A; padding: 2rem; }
+h1 { font-size: 1.5rem; font-weight: 800; margin-bottom: .5rem; }
+p.sub { font-size: 14px; color: #475569; margin-bottom: 2rem; }
+.config-section { max-width: 720px; margin: 0 auto; }
+
+label { display: block; font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #94A3B8; margin-bottom: 4px; }
+input, select, textarea { font-family: 'Outfit', sans-serif; font-size: 14px; width: 100%; padding: 8px 12px; border: 1px solid #E2E8F0; border-radius: 7px; outline: none; background: #fff; }
+input:focus, select:focus, textarea:focus { border-color: #E8722A; box-shadow: 0 0 0 3px rgba(232,114,42,.1); }
+
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.row-3 { grid-template-columns: 1fr 1fr 1fr; }
+.full { grid-column: 1 / -1; }
+
+.card { background: #fff; border: 1px solid #E2E8F0; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+.card h2 { font-size: 15px; font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px; }
+.card h2 .num { background: #2563EB; color: #fff; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 800; }
+
+.project-card { background: #FAFBFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 1rem; margin-bottom: .75rem; position: relative; }
+.project-card .remove { position: absolute; top: 8px; right: 8px; background: none; border: none; cursor: pointer; color: #94A3B8; font-size: 18px; }
+.project-card .remove:hover { color: #EF4444; }
+
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 7px; border: none; font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: background .15s; }
+.btn-add { background: #EFF6FF; color: #2563EB; border: 1px solid #BFDBFE; }
+.btn-add:hover { background: #DBEAFE; }
+.btn-generate { background: #E8722A; color: #fff; font-size: 14px; padding: 12px 24px; }
+.btn-generate:hover { background: #C95E18; }
+.btn-copy { background: #0F172A; color: #fff; font-size: 14px; padding: 12px 24px; }
+.btn-copy:hover { background: #1E293B; }
+
+.actions { display: flex; gap: 10px; margin-top: 1.5rem; flex-wrap: wrap; }
+
+#output { display: none; margin-top: 1.5rem; }
+#output textarea { font-family: 'Consolas', 'Monaco', monospace; font-size: 12px; min-height: 300px; background: #0F172A; color: #E2E8F0; border: none; border-radius: 10px; padding: 1rem; }
+.copied { background: #065F46 !important; color: #fff !important; }
+</style>
+</head>
+<body>
+<div class="config-section">
+  <h1>MontyViewer Config Generator</h1>
+  <p class="sub">Vul de gegevens in en genereer de TypeScript config voor projects-config.ts</p>
+
+  <!-- Klant -->
+  <div class="card">
+    <h2><span class="num">1</span> Klant</h2>
+    <div class="row">
+      <div><label>Klantnaam</label><input id="client" value="JM Concepten" placeholder="Bedrijfsnaam"></div>
+      <div><label>Gratis projectlimiet</label><input id="freeLimit" type="number" value="3" min="1"></div>
+    </div>
+  </div>
+
+  <!-- Projecten -->
+  <div class="card">
+    <h2><span class="num">2</span> Projecten</h2>
+    <div id="projects"></div>
+    <button class="btn btn-add" onclick="addProject()">+ Project toevoegen</button>
+  </div>
+
+  <!-- Output -->
+  <div class="actions">
+    <button class="btn btn-generate" onclick="generate()">Genereer Config</button>
+    <button class="btn btn-copy" id="copyBtn" onclick="copyOutput()" style="display:none">Kopieer naar clipboard</button>
+  </div>
+
+  <div id="output">
+    <label>TypeScript output — plak dit in src/landing/projects-config.ts</label>
+    <textarea id="result" readonly></textarea>
+  </div>
+</div>
+
+<script>
+let projectCount = 0;
+
+function addProject(data) {
+  const d = data || {};
+  const idx = projectCount++;
+  const div = document.createElement('div');
+  div.className = 'project-card';
+  div.id = `proj-${idx}`;
+  div.innerHTML = `
+    <button class="remove" onclick="this.parentElement.remove()" title="Verwijder">&times;</button>
+    <div class="row">
+      <div><label>Speckle Project ID *</label><input data-f="id" value="${d.id||''}" placeholder="bijv. 6aa8af2d3e"></div>
+      <div><label>Titel *</label><input data-f="title" value="${d.title||''}" placeholder="Projectnaam"></div>
+    </div>
+    <div class="full" style="margin-bottom:12px"><label>Beschrijving</label><input data-f="description" value="${d.description||''}" placeholder="Korte omschrijving"></div>
+    <div class="row row-3">
+      <div><label>Type (filtercategorie)</label>
+        <select data-f="type">
+          <option value="wonen" ${d.type==='wonen'?'selected':''}>Wonen</option>
+          <option value="utiliteitsbouw" ${d.type==='utiliteitsbouw'?'selected':''}>Utiliteitsbouw</option>
+          <option value="gevels" ${d.type==='gevels'?'selected':''}>Gevels</option>
+          <option value="industrie" ${d.type==='industrie'?'selected':''}>Industrie</option>
+        </select>
+      </div>
+      <div><label>Fase</label>
+        <select data-f="phase">
+          <option value="Uitvoering" ${d.phase==='Uitvoering'?'selected':''}>Uitvoering</option>
+          <option value="DO" ${d.phase==='DO'?'selected':''}>DO</option>
+          <option value="VO" ${d.phase==='VO'?'selected':''}>VO</option>
+          <option value="AO" ${d.phase==='AO'?'selected':''}>AO</option>
+        </select>
+      </div>
+      <div><label>Bijgewerkt (datum)</label><input data-f="updated" type="date" value="${d.updated||new Date().toISOString().slice(0,10)}"></div>
+    </div>
+    <div class="row row-3" style="margin-top:12px">
+      <div><label>Elementen (aantal)</label><input data-f="elements" type="number" value="${d.elements||0}" min="0"></div>
+      <div><label>Actief?</label>
+        <select data-f="active">
+          <option value="true" ${d.active!==false?'selected':''}>Ja</option>
+          <option value="false" ${d.active===false?'selected':''}>Nee</option>
+        </select>
+      </div>
+      <div><label>Locatie (plaatsnaam)</label><input data-f="location" value="${d.location||''}" placeholder="bijv. Rotterdam"></div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <div><label>Latitude</label><input data-f="lat" type="number" step="any" value="${d.lat||''}" placeholder="51.9225"></div>
+      <div><label>Longitude</label><input data-f="lng" type="number" step="any" value="${d.lng||''}" placeholder="4.4792"></div>
+    </div>
+  `;
+  document.getElementById('projects').appendChild(div);
+}
+
+function readProjects() {
+  const cards = document.querySelectorAll('.project-card');
+  return [...cards].map(card => {
+    const get = f => { const el = card.querySelector(`[data-f="${f}"]`); return el ? el.value : ''; };
+    return {
+      id: get('id').trim(),
+      title: get('title').trim(),
+      description: get('description').trim(),
+      type: get('type'),
+      phase: get('phase'),
+      updated: get('updated'),
+      elements: parseInt(get('elements')) || 0,
+      active: get('active') === 'true',
+      location: get('location').trim(),
+      lat: parseFloat(get('lat')) || null,
+      lng: parseFloat(get('lng')) || null,
+    };
+  }).filter(p => p.id);
+}
+
+function generate() {
+  const client = document.getElementById('client').value.trim();
+  const freeLimit = parseInt(document.getElementById('freeLimit').value) || 3;
+  const projects = readProjects();
+
+  if (!projects.length) { alert('Voeg minimaal 1 project toe met een Speckle ID.'); return; }
+
+  const lines = projects.map(p => {
+    let s = '  {\n';
+    s += `    id: "${p.id}",\n`;
+    s += `    title: "${p.title}",\n`;
+    s += `    description: "${p.description}",\n`;
+    s += `    type: "${p.type}",\n`;
+    s += `    phase: "${p.phase}",\n`;
+    s += `    updated: "${p.updated}",\n`;
+    s += `    elements: ${p.elements},\n`;
+    s += `    active: ${p.active},\n`;
+    if (p.location) s += `    location: "${p.location}",\n`;
+    if (p.lat) s += `    lat: ${p.lat},\n`;
+    if (p.lng) s += `    lng: ${p.lng},\n`;
+    s += `    speckleBase: "https://app.montyviewer.com",\n`;
+    s += '  }';
+    return s;
+  }).join(',\n');
+
+  const output = `// Gegenereerd via config-invullen.html — ${new Date().toISOString().slice(0,10)}
+
+export const PROJECTS: Project[] = [
+${lines},
+];
+
+export const DEFAULT_CONFIG: MontyConfig = {
+  client: "${client}",
+  freeLimit: ${freeLimit},
+  projects: PROJECTS,
+};`;
+
+  document.getElementById('result').value = output;
+  document.getElementById('output').style.display = 'block';
+  document.getElementById('copyBtn').style.display = 'inline-flex';
+}
+
+function copyOutput() {
+  const ta = document.getElementById('result');
+  navigator.clipboard.writeText(ta.value).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = 'Gekopieerd!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Kopieer naar clipboard'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// Start met 1 leeg project
+addProject({ id: '6aa8af2d3e', title: 'TV Luck Raeck', description: 'CLT houtskeletbouw constructie', type: 'wonen', phase: 'Uitvoering', updated: '2026-03-30', elements: 381, active: true, location: 'Zwijndrecht', lat: 51.8167, lng: 4.6333 });
+addProject();
+</script>
+</body>
+</html>
