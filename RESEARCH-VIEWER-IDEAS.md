@@ -39,6 +39,8 @@ Datum inventarisatie: 2026-03-16
 | Feb 27, 2026 | Strategische notities: viewer als product, €250/project | Richting bepaald |
 | Mrt 2026 | Pivot ThatOpen → Speckle, v1.0 live op Vercel | LIVE |
 | 16 mrt 2026 | v1.1: context menu, multi-select, linked Mark, CLT_T_Mark | LIVE |
+| 1 apr 2026 | Landing page: projectoverzicht per klant, Speckle previews, demo/upsell, locked cards | LIVE |
+| 1 apr 2026 | Eerste klant: JM Concepten (3 open + 1 locked project, echte Speckle IDs) | LIVE |
 
 ---
 
@@ -143,7 +145,7 @@ Datum inventarisatie: 2026-03-16
 - [ ] Camera preset views (Front, Back, Left, Right, Top, 3D)
 
 #### Platform & Hosting
-- [ ] Projecten overview per klant (landing page met projectkaarten)
+- [x] Projecten overview per klant (landing page met projectkaarten) — DONE 2026-04-01
 - [ ] Self-hosting op NAS (van Vercel af)
 - [ ] Klant inlog + eigen projectomgeving
 - [ ] IFC upload functionaliteit (drag & drop, nu alleen Speckle push)
@@ -151,7 +153,7 @@ Datum inventarisatie: 2026-03-16
 
 #### Performance & UX
 - [ ] Mark parser caching (nu batch-fetch bij elke load)
-- [ ] Maatvoeren mobiel UX (toolbar conflict) — [#5](https://github.com/piyton/montyviewer/issues/5)
+- [x] Maatvoeren mobiel UX (toolbar conflict) — [#5](https://github.com/piyton/montyviewer/issues/5) — DONE (gesloten)
 - [ ] Betere iconen, loading states, error handling
 - [ ] Keyboard shortcuts (F=zoom model, Delete=verwijder, Escape=deactiveer)
 
@@ -432,20 +434,20 @@ Alle drie gebruiken hetzelfde technische patroon: `ViewerEvent.ObjectClicked` �
 - Multi-select + context menu + linked Mark
 - Speckle self-hosted (data ownership)
 - Responsive mobiel/tablet
+- **Projecten overview LIVE** — landing page met Outfit font, kaarten, Speckle previews, demo/upsell, locked cards
+- **Eerste klant:** JM Concepten (3 open + 1 locked project)
+- Category filtering (filter-panel met Mark + Type)
+- Isoleer/Verberg knoppen in property panel
 - TypeScript, modulair, goed gedocumenteerd
 
 ### Grootste gaps (niet gerealiseerd)
 1. **Revenue = €0** — geen klant betaalt nog, geen pricing actief
-2. **Geen projecten overview** — klant krijgt losse URL, geen landing page
-3. **Geen BCF** — prototype bestaat maar niet geïntegreerd
-4. **Geen annotaties** — strategie uitgewerkt maar niet gebouwd
-5. **Geen filtering op parameters** — alleen bouwvolgorde-based
-6. **Geen IFC upload** — alleen via Revit Connector push
-7. **Geen self-hosting** — draait op Vercel (Speckle wel op NAS)
+2. **Geen BCF** — prototype bestaat maar niet geïntegreerd
+3. **Geen annotaties** — strategie uitgewerkt maar niet gebouwd
+4. **Geen IFC upload** — alleen via Revit Connector push
+5. **Geen self-hosting** — draait op Vercel (Speckle wel op NAS)
 
 ### Quick wins (laag effort, hoge waarde)
-1. Projecten overview Niveau 1 (JSON + landing page, 1-2 dagen)
-2. Camera preset views (Front/Back/Left/Right/Top, halve dag)
-3. Category filtering (toggle per type, 1 dag)
-4. Keyboard shortcuts (F/Delete/Escape, halve dag)
-5. Isoleer/Verberg knoppen in property panel (halve dag)
+1. Camera preset views (Front/Back/Left/Right/Top, halve dag)
+2. Keyboard shortcuts (F/Delete/Escape, halve dag)
+3. Meer klanten toevoegen in projects-config.ts

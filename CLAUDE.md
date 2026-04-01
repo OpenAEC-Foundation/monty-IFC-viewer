@@ -3,8 +3,9 @@
 Web-based IFC viewer met **bouwvolgorde visualisatie** voor 3BM Engineering.
 Klanten krijgen een link, openen de viewer op tablet/telefoon, en zien hun model met bouwvolgorde + meettools.
 
-**Status:** MVP live — bouwvolgorde, context menu, multi-select, linked Mark, meettools, model toggle, day/night
+**Status:** MVP live — bouwvolgorde, context menu, multi-select, linked Mark, meettools, model toggle, day/night, **landing page met projectoverzicht per klant**
 **Live URL:** https://montyviewer.vercel.app/?project=6aa8af2d3e
+**Landing:** https://montyviewer.vercel.app/landing/?client=demo
 **GitHub:** https://github.com/piyton/montyviewer (private)
 **Speckle server:** https://app.montyviewer.com (self-hosted, Docker op NAS)
 
@@ -34,15 +35,20 @@ Layer 0: Three.js          — 3D rendering
 ```
 Piet exporteert IFC uit Revit
   → Revit Connector push naar app.montyviewer.com (Speckle)
-  → klant krijgt link: montyviewer.vercel.app/?project=PROJECT_ID
-  → viewer laadt alle branches automatisch
+  → project toevoegen aan src/landing/projects-config.ts
+  → klant krijgt link: montyviewer.vercel.app/landing/?client=SLUG
+  → klant klikt project → viewer opent met ?project=PROJECT_ID
 ```
 
 ### Nieuw project delen
 
 1. Push vanuit Revit naar Speckle (`app.montyviewer.com`)
 2. Kopieer project-ID uit Speckle URL: `app.montyviewer.com/projects/XXXXXX`
-3. Deel: `https://montyviewer.vercel.app/?project=XXXXXX`
+3. Voeg toe aan `src/landing/projects-config.ts` (of gebruik `/landing/config-invullen.html`)
+4. Push naar main → Vercel deployt automatisch
+5. Deel: `https://montyviewer.vercel.app/landing/?client=SLUG`
+
+**Direct naar viewer (zonder landing):** `https://montyviewer.vercel.app/?project=XXXXXX`
 
 ### Architectuurbeslissing: ThatOpen → Speckle
 
@@ -107,11 +113,18 @@ montyviewer/
       property-panel.ts       # Properties panel (single + multi-select met VAR)
       context-menu.ts         # Rechtermuisklik: isoleer, verberg, reset + multi-select
       model-panel.ts          # Model toggle (branches aan/uit)
+    landing/
+      projects-config.ts      # Klant/project data + MontyConfig types
+      main.ts                 # Landing page entry: cards, filters, upsell
+      thumbnail-loader.ts     # Speckle preview + SVG placeholder fallback
     main.ts                   # App entry: URL parsing, viewer init, add-on registratie
     style.css                 # Day/night theme, responsive, alle UI styling
+  landing/
+    index.html                # Landing page HTML (Outfit font, inline CSS)
+    config-invullen.html      # Config generator formulier
   index.html
   package.json
-  vite.config.ts
+  vite.config.ts              # Multi-page build (viewer + landing)
   tsconfig.json
   CLAUDE.md                   # Dit bestand
 ```
@@ -155,6 +168,14 @@ git push          # Vercel bouwt en deployt automatisch
 | Model toggle (branches aan/uit) | Werkend | model-panel.ts |
 | Day/night theme | Werkend | style.css, toolbar.ts |
 | Responsive mobiel/tablet | Werkend | style.css |
+| Landing page (projectoverzicht) | Werkend | landing/index.html, src/landing/*.ts |
+| Speckle preview thumbnails | Werkend | thumbnail-loader.ts |
+| Demo/upsell (free limit) | Werkend | main.ts (landing), projects-config.ts |
+| Locked cards (boven limiet) | Werkend | main.ts (landing) |
+| Locatie + Google Maps link | Werkend | main.ts (landing) |
+| Zoeken + filteren (type) | Werkend | main.ts (landing) |
+| Back-to-projects knop | Werkend | main.ts (viewer), style.css |
+| Config generator | Werkend | landing/config-invullen.html |
 
 ---
 
@@ -195,6 +216,7 @@ git push          # Vercel bouwt en deployt automatisch
 | Section box | `OrientedSectionTool` (niet SectionTool!) | toolbar.ts |
 | Explode | `ExplodeExtension` | toolbar.ts |
 | Camera | `CameraController.setCameraView()` | toolbar.ts |
+| Project preview | REST `/preview/{projectId}` → PNG | thumbnail-loader.ts |
 
 ---
 
@@ -211,16 +233,19 @@ git push          # Vercel bouwt en deployt automatisch
 - **npm overrides** nodig voor `@speckle/objectloader2` en `@speckle/shared` (v2.25.4)
 - **Speckle server** draait op `app.montyviewer.com` (Docker/Synology NAS)
 - Streams zijn publiek — geen auth nodig voor viewer
+- **Speckle `previewImage` GraphQL veld bestaat NIET** op deze server versie — gebruik REST `/preview/{projectId}` (retourneert PNG met `Access-Control-Allow-Origin: *`)
+- **Vite multi-page**: `landing/index.html` als aparte entry in `vite.config.ts` → `rollupOptions.input` met `resolve()`. URL = `/landing/` in zowel dev als prod
+- **Landing page sortering**: Projecten met fase "Uitvoering" worden altijd als eerste getoond (linksboven in grid)
 
 ---
 
 ## Volgende stappen (TODO)
 
-1. **Projecten overview per klant**: Landing page met projectkaarten (zie "Projecten Overview" hieronder)
+1. ~~**Projecten overview per klant**~~: DONE — landing page met Outfit font, hero, kaarten, Speckle previews, zoek/filter, demo/upsell, locked cards, locatie
 2. **Views + Annotaties**: 2D annotaties uit Revit naar viewer (zie "Annotatie-strategie" hieronder)
 3. **Schedules**: Revit schedules tonen in de viewer (DataTable via Speckle API)
 4. ~~**Isoleer/Verberg knoppen in property panel**~~: DONE — zitten nu boven in het property panel
-5. **Maatvoeren mobiel**: Toolbar conflict op touch — [#5](https://github.com/piyton/montyviewer/issues/5)
+5. ~~**Maatvoeren mobiel**~~: DONE — [#5](https://github.com/piyton/montyviewer/issues/5) gesloten
 6. **Filtering**: Category toggle, isolate/hide per categorie (Mark + Type filter DONE in filter-panel)
 7. **Renvooi / Legenda**: Interactieve element-legenda — [#1](https://github.com/piyton/montyviewer/issues/1)
 8. **Levering highlighting**: Krat-klik → highlight delivery elementen — [#2](https://github.com/piyton/montyviewer/issues/2)
@@ -237,17 +262,18 @@ git push          # Vercel bouwt en deployt automatisch
 
 ## Projecten Overview — Strategie
 
-Klanten moeten een landing page krijgen met hun projecten. Drie niveaus uitgewerkt:
+Klanten krijgen een landing page met hun projecten. **Niveau 1 is LIVE.**
 
-### Niveau 1: Statische projectenlijst (1-2 dagen)
-JSON config bestand met projecten per klant. Simpele landing page met projectkaarten + thumbnails.
-- **Config:** `projects.json` met `{ klant, projectNaam, projectId, thumbnail? }`
-- **Thumbnails:** Via Speckle GraphQL (`project.preview`) of handmatige screenshot
-- **Routing:** `/?client=klantX` → projectenlijst, klik → `/?project=ID` (huidige viewer)
-- **Hosting:** Vercel (huidige setup) of statisch op NAS
-- **Auth:** Geen — URL is de toegang (like-for-like met huidige opzet)
-- **Pro:** Snel, simpel, volledig onder controle
-- **Con:** Handmatig bijhouden van projectenlijst
+### Niveau 1: Statische projectenlijst — DONE
+TypeScript config met projecten per klant. Landing page met Outfit font, hero, kaarten, Speckle preview thumbnails.
+- **Config:** `src/landing/projects-config.ts` met `Project[]` + `MontyConfig`
+- **Config generator:** `/landing/config-invullen.html` (formulier → TypeScript output)
+- **Thumbnails:** Via Speckle REST `/preview/{projectId}` (PNG), fallback naar SVG placeholder
+- **Routing:** `/?client=slug` → redirect naar `/landing/?client=slug`, klik kaart → `/?project=ID&from=slug`
+- **Features:** Zoeken, filteren op type, fase-badges, locatie met Google Maps, demo banner, upsell card, locked cards (freeLimit), back-to-projects knop in viewer
+- **Injection:** `window.MONTY_CONFIG = { client, freeLimit, projects }` voor server-side override
+- **Hosting:** Vercel (multi-page Vite build), ook portable naar NAS (pure static)
+- **Klanten:** JM Concepten (3 open + 1 locked project, echte Speckle IDs)
 
 ### Niveau 2: Dynamisch uit Speckle (3-5 dagen)
 Projecten automatisch ophalen uit Speckle server op basis van naamconventie of tags.
