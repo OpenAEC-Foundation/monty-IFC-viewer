@@ -75,7 +75,7 @@ export async function initViewer(
   const sections = viewer.createExtension(OrientedSectionTool);
   viewer.createExtension(SectionOutlines);
   const measurements = viewer.createExtension(MeasurementsExtension);
-  measurements.options = { ...measurements.options, vertexSnap: true };
+  measurements.options = { ...measurements.options, vertexSnap: true, units: "mm", precision: 0 };
 
   // Override snap: vertex > edge > face hierarchy with large thresholds
   type NDCPoint = { x: number; y: number; z: number; distanceTo: (b: NDCPoint) => number; unproject: (cam: unknown) => unknown };
