@@ -238,6 +238,20 @@ async function initBouwvolgorde(
     const timeline = createTimelineUI(manager);
     overlay?.appendChild(timeline);
 
+    // Add bouwvolgorde toggle to left toolbar
+    const bvToggle = document.createElement("button");
+    bvToggle.className = "left-tb-btn";
+    bvToggle.id = "bouwvolgorde-toggle";
+    bvToggle.title = "Bouwvolgorde";
+    bvToggle.classList.add("active");
+    bvToggle.innerHTML = `<svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11v11.78a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>`;
+    bvToggle.addEventListener("click", () => {
+      const isVisible = !timeline.classList.contains("hidden");
+      timeline.classList.toggle("hidden", isVisible);
+      bvToggle.classList.toggle("active", !isVisible);
+    });
+    leftToolbar.appendChild(bvToggle);
+
     // Add filter button to left toolbar, panel to overlay
     const { button: filterBtn, panel: filterPanel } = createFilterPanel(instance, mapping);
     leftToolbar.appendChild(filterBtn);

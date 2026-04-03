@@ -2,7 +2,7 @@ import { ViewerEvent, type SelectionEvent } from "@speckle/viewer";
 import type { ViewerInstance } from "../core/viewer-setup";
 import { SPECKLE_SERVER } from "../core/viewer-setup";
 import type { PhaseMapping } from "../addons/bouwvolgorde/mark-parser";
-import { selectedIds, isolateSelected, hideSelected, resetFilters, hasActiveFilters } from "./context-menu";
+import { selectedIds, isolateSelected, hideSelected, resetFilters, hasActiveFilters, findFirstInteractableHit } from "./context-menu";
 
 let _phaseMapping: PhaseMapping | null = null;
 
@@ -124,7 +124,13 @@ export function createPropertyPanel(instance: ViewerInstance): PropertyPanelResu
       return;
     }
 
-    const node = event.hits[0].node;
+    // Skip hidden/ghosted elements — find first interactable hit
+    const hit = findFirstInteractableHit(event.hits, instance);
+    if (!hit) {
+      panel.classList.add("hidden");
+      return;
+    }
+    const node = hit.node;
     const raw = node.model.raw;
 
     if (!raw || typeof raw !== "object") {

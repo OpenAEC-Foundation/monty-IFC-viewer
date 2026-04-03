@@ -145,17 +145,7 @@ body {
 }
 
 .toolbar-btn.separator-after {
-  margin-right: 8px;
-}
-
-.toolbar-btn.separator-after::after {
-  content: "";
-  position: absolute;
-  right: -6px;
-  top: 20%;
-  height: 60%;
-  width: 1px;
-  background: var(--separator-color);
+  margin-right: 0;
 }
 
 /* Toolbar Submenu (measurement dropdown) */
@@ -610,6 +600,10 @@ body {
   color: var(--text-primary);
 }
 
+#bouwvolgorde-timeline.hidden {
+  display: none;
+}
+
 /* Model Panel (opens to the right of left toolbar) */
 #model-panel {
   position: absolute;
@@ -1003,6 +997,10 @@ html.dark-theme #property-panel::-webkit-scrollbar-thumb {
     min-width: unset;
     width: calc(100% - 24px);
     padding: 10px 14px;
+  }
+
+  #overlay:has(> #back-to-projects) > #toolbar {
+    left: 52px;
   }
 }
 

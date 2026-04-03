@@ -4,6 +4,30 @@ import type { PhaseMapping } from "../addons/bouwvolgorde/mark-parser";
 
 const SELECTION_COLOR = "#4fc3f7"; // Light blue for selection highlight
 
+/** Find the first hit that is not hidden or ghosted, so clicks pass through non-interactive elements */
+export function findFirstInteractableHit(
+  hits: SelectionEvent["hits"],
+  instance: ViewerInstance | null
+): SelectionEvent["hits"][0] | null {
+  if (!instance || hits.length === 0) return hits[0] || null;
+  const state = instance.filtering.filteringState;
+  const hiddenSet = state.hiddenObjects?.length
+    ? new Set(state.hiddenObjects)
+    : null;
+  const isolatedSet = state.isolatedObjects?.length
+    ? new Set(state.isolatedObjects)
+    : null;
+
+  for (const hit of hits) {
+    const id = hit.node.model?.raw?.id;
+    if (!id) continue;
+    if (hiddenSet?.has(id)) continue;
+    if (isolatedSet && !isolatedSet.has(id)) continue;
+    return hit;
+  }
+  return null;
+}
+
 /** Selected element IDs (multi-select with Ctrl/Shift+click) */
 export const selectedIds = new Set<string>();
 
@@ -116,7 +140,13 @@ export function createContextMenu(instance: ViewerInstance): HTMLElement {
       }
       return;
     }
-    const raw = event.hits[0].node.model.raw;
+    // Skip hidden/ghosted elements — find first interactable hit
+    const hit = findFirstInteractableHit(event.hits, _instance);
+    if (!hit) {
+      selectedIds.clear();
+      return;
+    }
+    const raw = hit.node.model.raw;
     if (!raw?.id) return;
 
     const e = event.event;
