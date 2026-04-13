@@ -33,20 +33,6 @@ export const PHASE_STYLES: Record<string, { bg: string; color: string; border: s
  */
 export const PROJECTS: Project[] = [
   {
-    id: "6aa8af2d3e",
-    title: "JM25-020 TV Luck Raeck",
-    description: "CLT en Glulam Tennisvereniging TV Luck Raeck",
-    type: "sport",
-    phase: "Gemonteerd",
-    updated: "2026-03-30",
-    elements: 381,
-    active: true,
-    location: "Maarssen",
-    lat: 52.1363,
-    lng: 5.0418,
-    speckleBase: "https://app.montyviewer.com",
-  },
-  {
     id: "b48733162c",
     title: "PR235078 Woning Kralingseweg 370 Rotterdam",
     description: "CLT Woning Kralingseweg 370 Rotterdam",
@@ -74,7 +60,35 @@ export const PROJECTS: Project[] = [
     lng: 4.3571,
     speckleBase: "https://app.montyviewer.com",
   },
-  // Project #4 — locked (freeLimit = 3)
+  {
+    id: "8225330c71",
+    title: "CLT Appartementen Blauwgroep Delft",
+    description: "CLT Appartementen Blauwgroep Delft",
+    type: "wonen",
+    phase: "Uitvoering",
+    updated: "2026-04-13",
+    elements: 0,
+    active: true,
+    location: "Delft",
+    lat: 52.0116,
+    lng: 4.3571,
+    speckleBase: "https://app.montyviewer.com",
+  },
+  // Projects below freeLimit (3) — locked
+  {
+    id: "6aa8af2d3e",
+    title: "JM25-020 TV Luck Raeck",
+    description: "CLT en Glulam Tennisvereniging TV Luck Raeck",
+    type: "sport",
+    phase: "Gemonteerd",
+    updated: "2026-03-30",
+    elements: 381,
+    active: true,
+    location: "Maarssen",
+    lat: 52.1363,
+    lng: 5.0418,
+    speckleBase: "https://app.montyviewer.com",
+  },
   {
     id: "4e5da159c4",
     title: "JM25-074 Amsteldijk 802 Amsterdam",
