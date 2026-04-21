@@ -10,6 +10,7 @@ declare global {
 // Config: injected via window.MONTY_CONFIG, or via ?client=SLUG, or fallback jm.
 const slug = new URLSearchParams(location.search).get("client")?.toLowerCase() ?? "jm";
 const cfg: MontyConfig = window.MONTY_CONFIG ?? CLIENT_CONFIGS[slug] ?? CLIENT_CONFIGS.jm;
+const IS_PAID = cfg.plan === "paid";
 const { client: CLIENT_NAME, freeLimit: FREE_LIMIT, projects: PROJECTS } = cfg;
 
 // ── Helpers ──
@@ -35,22 +36,34 @@ function mapsUrl(lat: number, lng: number, label: string): string {
 const isLimited = PROJECTS.length >= FREE_LIMIT;
 
 if (isLimited) {
-  document.getElementById("demo-banner")!.classList.add("show");
-  document.getElementById("demo-pill")!.classList.add("show");
   document.getElementById("upsell-wrap")!.classList.add("show");
 
   const used = Math.min(PROJECTS.length, FREE_LIMIT);
-  document.getElementById("upsell-text")!.innerHTML =
-    `<strong>Projectlimiet bereikt \u2014 Demo plan (0 van ${FREE_LIMIT} gratis projecten beschikbaar)</strong>
-     <p>Uw demotoegang is verbruikt. Upgrade naar <a href="https://montyviewer.com/contact/">Monty Viewer</a> voor onbeperkte toegang.</p>`;
   document.getElementById("limit-label")!.textContent = `${used} / ${FREE_LIMIT}`;
   (document.getElementById("limit-fill") as HTMLElement).style.width = `${(used / FREE_LIMIT) * 100}%`;
 
+  if (IS_PAID) {
+    document.getElementById("upsell-text")!.innerHTML =
+      `<strong>Projectlimiet bereikt \u2014 ${used} van ${FREE_LIMIT} projecten in gebruik</strong>
+       <p>Gearchiveerde projecten inzien kost \u20ac29 per project per maand. <a href="https://montyviewer.com/contact/">Neem contact op</a> om te activeren.</p>`;
+  } else {
+    document.getElementById("demo-banner")!.classList.add("show");
+    document.getElementById("demo-pill")!.classList.add("show");
+    document.getElementById("upsell-text")!.innerHTML =
+      `<strong>Projectlimiet bereikt \u2014 Demo plan (0 van ${FREE_LIMIT} gratis projecten beschikbaar)</strong>
+       <p>Uw demotoegang is verbruikt. Upgrade naar <a href="https://montyviewer.com/contact/">Monty Viewer</a> voor onbeperkte toegang.</p>`;
+  }
+}
+
+if (IS_PAID) {
+  document.getElementById("stat-plan")!.textContent = "MontyViewer";
+  (document.getElementById("stat-plan") as HTMLElement).style.fontSize = "1rem";
+  (document.getElementById("stat-plan") as HTMLElement).style.paddingTop = "6px";
+  document.getElementById("topbar-cta")!.textContent = "Contact";
+} else if (isLimited) {
   document.getElementById("stat-plan")!.textContent = "Demo";
   (document.getElementById("stat-plan") as HTMLElement).style.fontSize = "1.4rem";
   (document.getElementById("stat-plan") as HTMLElement).style.paddingTop = "4px";
-
-  // Change CTA button text
   document.getElementById("topbar-cta")!.textContent = "Upgrade";
 } else {
   document.getElementById("stat-plan")!.textContent = initials(CLIENT_NAME);

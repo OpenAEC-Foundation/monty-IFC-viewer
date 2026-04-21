@@ -13,10 +13,13 @@ export interface Project {
   speckleBase: string;
 }
 
+export type Plan = "demo" | "paid";
+
 export interface MontyConfig {
   client: string;
   freeLimit: number;
   projects: Project[];
+  plan?: Plan;
 }
 
 export const PHASE_STYLES: Record<string, { bg: string; color: string; border: string }> = {
@@ -132,6 +135,12 @@ export const CLIENT_CONFIGS: Record<string, MontyConfig> = {
     client: "Domera",
     freeLimit: 3,
     projects: [KRALINGSEWEG, AMSTELDIJK, ARK_TIMMERMANS],
+  },
+  demo: {
+    client: "Demo",
+    freeLimit: 3,
+    plan: "paid",
+    projects: [KRALINGSEWEG, LEEUWENHOEK, BLAUWGROEP, LUCK_RAECK, AMSTELDIJK],
   },
 };
 
