@@ -1,4 +1,4 @@
-import { DEFAULT_CONFIG, PHASE_STYLES, type Project, type MontyConfig } from "./projects-config";
+import { CLIENT_CONFIGS, PHASE_STYLES, type Project, type MontyConfig } from "./projects-config";
 import { loadThumbnail, mkPlaceholder } from "./thumbnail-loader";
 
 declare global {
@@ -7,8 +7,9 @@ declare global {
   }
 }
 
-// Config: injected via window.MONTY_CONFIG or fallback to projects-config.ts
-const cfg: MontyConfig = window.MONTY_CONFIG ?? DEFAULT_CONFIG;
+// Config: injected via window.MONTY_CONFIG, or via ?client=SLUG, or fallback jm.
+const slug = new URLSearchParams(location.search).get("client")?.toLowerCase() ?? "jm";
+const cfg: MontyConfig = window.MONTY_CONFIG ?? CLIENT_CONFIGS[slug] ?? CLIENT_CONFIGS.jm;
 const { client: CLIENT_NAME, freeLimit: FREE_LIMIT, projects: PROJECTS } = cfg;
 
 // ── Helpers ──
