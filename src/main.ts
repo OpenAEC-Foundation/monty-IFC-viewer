@@ -29,6 +29,14 @@ async function main(): Promise<void> {
   // Parse stream from URL
   const streamParams = parseStreamParams();
   if (!streamParams) {
+    const search = new URLSearchParams(window.location.search);
+    const hasModelQuery = search.has("project") || search.has("url");
+
+    if (!hasModelQuery) {
+      window.location.href = "/landing/";
+      return;
+    }
+
     showMessage(
       "Geen model opgegeven. Gebruik ?project=... of ?url=https://app.montyviewer.com/projects/..."
     );
