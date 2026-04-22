@@ -1,5 +1,6 @@
 import type { ViewerInstance } from "../../core/viewer-setup";
 import type { PhaseMapping } from "./mark-parser";
+import { applyCltOverlay } from "../../core/filter-state";
 
 /** Colors for phase states */
 const COLORS = {
@@ -52,11 +53,13 @@ export class PhaseManager {
     return true;
   }
 
-  /** Reset: show all elements with original colors. */
+  /** Reset: show all elements with original colors (CLT hide overlay preserved if active). */
   reset(): void {
     this._currentPhase = -1;
     this.instance.filtering.removeUserObjectColors();
     this.instance.filtering.resetFilters();
+    applyCltOverlay(this.instance);
+    this.instance.viewer.requestRender();
   }
 
   private applyPhase(): void {
@@ -89,5 +92,8 @@ export class PhaseManager {
     if (currentIds.length > 0) {
       filtering.setUserObjectColors([{ objectIds: currentIds, color: COLORS.current }]);
     }
+
+    // setUserObjectColors overrides hide — re-apply CLT overlay last so tags stay hidden
+    applyCltOverlay(this.instance);
   }
 }

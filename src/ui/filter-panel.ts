@@ -2,8 +2,27 @@ import type { PhaseMapping } from "../addons/bouwvolgorde/mark-parser";
 import type { ViewerInstance } from "../core/viewer-setup";
 import { resetFilters } from "./context-menu";
 import type { PanelParts } from "./model-panel";
+import { applyCltOverlay, getCltHidden, setCltHidden, onCltHiddenChange } from "../core/filter-state";
 
 const FILTER_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>`;
+
+/** Tracks currently active isolation IDs within the filter panel (null = no section active). */
+let activeVisibleIds: string[] | null = null;
+
+/** Centralised filter application: isolate (optional) + CLT overlay + render. */
+function applyFilter(
+  instance: ViewerInstance,
+  visibleIds: string[] | null
+): void {
+  instance.filtering.removeUserObjectColors();
+  instance.filtering.resetFilters();
+  if (visibleIds !== null && visibleIds.length > 0) {
+    instance.filtering.isolateObjects(visibleIds, undefined, true, true);
+  }
+  applyCltOverlay(instance);
+  forceRender(instance);
+  activeVisibleIds = visibleIds;
+}
 
 /**
  * Creates the filter button + panel.
@@ -45,6 +64,11 @@ export function createFilterPanel(
   const body = document.createElement("div");
   body.className = "fp-body";
 
+  // --- CLT tags toggle (top) ---
+  if (mapping.cltTagIds.length > 0) {
+    body.appendChild(createCltToggle(instance));
+  }
+
   // --- Mark filter ---
   body.appendChild(createMarkFilter(instance, mapping));
 
@@ -64,6 +88,8 @@ export function createFilterPanel(
   resetBtn.textContent = "Reset filters";
   resetBtn.addEventListener("click", () => {
     resetFilters();
+    activeVisibleIds = null;
+    setCltHidden(false);
     const markInput = panel.querySelector<HTMLInputElement>(".fp-mark-input");
     if (markInput) markInput.value = "";
     panel.querySelectorAll<HTMLInputElement>(".fp-collectie-cb").forEach((cb) => {
@@ -72,6 +98,8 @@ export function createFilterPanel(
     panel.querySelectorAll<HTMLInputElement>(".fp-type-cb").forEach((cb) => {
       cb.checked = false;
     });
+    const cltCb = panel.querySelector<HTMLInputElement>(".fp-clt-cb");
+    if (cltCb) cltCb.checked = true;
   });
   body.appendChild(resetBtn);
 
@@ -79,6 +107,37 @@ export function createFilterPanel(
   panel.appendChild(body);
 
   return { button, panel };
+}
+
+function createCltToggle(instance: ViewerInstance): HTMLElement {
+  const wrap = document.createElement("label");
+  wrap.className = "fp-clt-toggle";
+
+  const cb = document.createElement("input");
+  cb.type = "checkbox";
+  cb.className = "fp-clt-cb";
+  // checked = visible (consistent with model checkboxes)
+  cb.checked = !getCltHidden();
+
+  const text = document.createElement("span");
+  text.className = "fp-clt-label";
+  text.textContent = "CLT tags";
+
+  cb.addEventListener("change", () => {
+    setCltHidden(!cb.checked);
+    // Re-apply current filter state so the overlay takes effect immediately
+    applyFilter(instance, activeVisibleIds);
+  });
+
+  // Keep the checkbox in sync if state is changed from elsewhere
+  onCltHiddenChange((hidden) => {
+    const shouldBe = !hidden;
+    if (cb.checked !== shouldBe) cb.checked = shouldBe;
+  });
+
+  wrap.appendChild(cb);
+  wrap.appendChild(text);
+  return wrap;
 }
 
 function createMarkFilter(
@@ -112,11 +171,7 @@ function createMarkFilter(
       return;
     }
 
-    // Reset first, then isolate — prevents stacking of previous filters
-    instance.filtering.removeUserObjectColors();
-    instance.filtering.resetFilters();
-    instance.filtering.isolateObjects(ids, undefined, true, true);
-    forceRender(instance);
+    applyFilter(instance, ids);
   }
 
   applyBtn.addEventListener("click", applyMarkFilter);
@@ -196,9 +251,7 @@ function applyCollectieFilter(
   );
 
   if (checked.length === 0) {
-    instance.filtering.removeUserObjectColors();
-    instance.filtering.resetFilters();
-    forceRender(instance);
+    applyFilter(instance, null);
     return;
   }
 
@@ -209,10 +262,7 @@ function applyCollectieFilter(
     if (ids) visibleIds.push(...ids);
   }
 
-  instance.filtering.removeUserObjectColors();
-  instance.filtering.resetFilters();
-  instance.filtering.isolateObjects(visibleIds, undefined, true, true);
-  forceRender(instance);
+  applyFilter(instance, visibleIds);
 }
 
 function createTypeFilter(
@@ -283,9 +333,7 @@ function applyTypeFilter(
   );
 
   if (checked.length === 0) {
-    instance.filtering.removeUserObjectColors();
-    instance.filtering.resetFilters();
-    forceRender(instance);
+    applyFilter(instance, null);
     return;
   }
 
@@ -296,9 +344,5 @@ function applyTypeFilter(
     if (ids) visibleIds.push(...ids);
   }
 
-  // Reset first, then apply new isolation — isolateObjects is additive
-  instance.filtering.removeUserObjectColors();
-  instance.filtering.resetFilters();
-  instance.filtering.isolateObjects(visibleIds, undefined, true, true);
-  forceRender(instance);
+  applyFilter(instance, visibleIds);
 }

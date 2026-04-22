@@ -679,11 +679,41 @@ body {
 }
 
 .mp-name {
+  flex: 1;
+  min-width: 0;
   font-size: 13px;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.mp-action-btn {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.mp-action-btn:hover {
+  background: var(--hover-bg);
+  color: var(--accent-teal);
+  border-color: var(--border-subtle);
+}
+
+.mp-action-btn.active {
+  background: var(--active-bg);
+  color: var(--accent-teal);
+  border-color: var(--accent-teal);
 }
 
 /* Left Toolbar (model + filter buttons) */
@@ -812,6 +842,30 @@ body {
 
 .fp-body {
   padding: 8px 14px;
+}
+
+.fp-clt-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--row-border);
+  cursor: pointer;
+}
+
+.fp-clt-cb {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent-teal);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.fp-clt-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
 }
 
 .fp-section {

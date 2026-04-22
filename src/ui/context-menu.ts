@@ -1,6 +1,7 @@
 import { ViewerEvent, type SelectionEvent } from "@speckle/viewer";
 import type { ViewerInstance } from "../core/viewer-setup";
 import type { PhaseMapping } from "../addons/bouwvolgorde/mark-parser";
+import { applyCltOverlay, getCltHidden } from "../core/filter-state";
 
 const SELECTION_COLOR = "#4fc3f7"; // Light blue for selection highlight
 
@@ -76,6 +77,7 @@ export function isolateSelected(): void {
   if (ids.length === 0) return;
   _instance.filtering.removeUserObjectColors();
   _instance.filtering.isolateObjects(ids, undefined, true, true);
+  applyCltOverlay(_instance);
   selectedIds.clear();
   _instance.viewer.requestRender();
   hasActiveFilters = true;
@@ -88,16 +90,18 @@ export function hideSelected(): void {
   if (ids.length === 0) return;
   _instance.filtering.removeUserObjectColors();
   _instance.filtering.hideObjects(ids, undefined, true, true);
+  applyCltOverlay(_instance);
   selectedIds.clear();
   _instance.viewer.requestRender();
   hasActiveFilters = true;
 }
 
-/** Reset all filters */
+/** Reset all filters (CLT hide overlay preserved if active) */
 export function resetFilters(): void {
   if (!_instance) return;
   _instance.filtering.removeUserObjectColors();
   _instance.filtering.resetFilters();
+  applyCltOverlay(_instance);
   selectedIds.clear();
   _instance.viewer.requestRender();
   hasActiveFilters = false;
@@ -178,16 +182,30 @@ export function createContextMenu(instance: ViewerInstance): HTMLElement {
     updateSelectionHighlight(instance);
   });
 
-  /** Apply highlight color to all selected elements + their mark groups */
+  /** Apply highlight color to all selected elements + their mark groups.
+   *  When CLT tags are hidden, exclude them from the highlight so the hide overlay
+   *  is not overridden (setUserObjectColors beats hideObjects in Speckle). */
   function updateSelectionHighlight(inst: ViewerInstance): void {
     if (selectedIds.size === 0) {
       inst.filtering.removeUserObjectColors();
+      applyCltOverlay(inst);
       return;
     }
-    const ids = getTargetIds();
+    let ids = getTargetIds();
+    if (getCltHidden() && _mapping && _mapping.cltTagIds.length > 0) {
+      const cltSet = new Set(_mapping.cltTagIds);
+      ids = ids.filter((id) => !cltSet.has(id));
+    }
+    if (ids.length === 0) {
+      inst.filtering.removeUserObjectColors();
+      applyCltOverlay(inst);
+      return;
+    }
     inst.filtering.setUserObjectColors([
       { objectIds: ids, color: SELECTION_COLOR },
     ]);
+    // setUserObjectColors clears hide state — re-apply CLT overlay
+    applyCltOverlay(inst);
   }
 
   function closeMenu(): void {

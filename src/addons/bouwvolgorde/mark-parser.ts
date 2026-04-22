@@ -18,6 +18,8 @@ export interface PhaseMapping {
   nodeIdToType: Map<string, string>;
   /** Map from collectie index (100-tal) to array of node IDs (Parts + Generic Models) */
   collectieToIds: Map<number, string[]>;
+  /** Node IDs of Generic Models with family "00_CLT TAG" (detected via CLT_T_Mark) */
+  cltTagIds: string[];
 }
 
 interface ElementInfo {
@@ -61,6 +63,7 @@ export async function parseMarks(
   const nodeIdToType = new Map<string, string>();
   const allMarkedIds: string[] = [];
   const unmarkedIds: string[] = [];
+  const cltTagIds: string[] = [];
 
   // Fetch in parallel batches
   const BATCH_SIZE = 20;
@@ -73,7 +76,7 @@ export async function parseMarks(
     );
 
     for (let j = 0; j < batch.length; j++) {
-      const { mark, originalType } = results[j];
+      const { mark, originalType, fromCltTag } = results[j];
       const nodeId = batch[j].nodeId;
 
       if (mark !== null) {
@@ -84,6 +87,9 @@ export async function parseMarks(
           existing.push(nodeId);
         } else {
           markToIds.set(mark, [nodeId]);
+        }
+        if (fromCltTag) {
+          cltTagIds.push(nodeId);
         }
       } else {
         unmarkedIds.push(nodeId);
@@ -139,15 +145,18 @@ export async function parseMarks(
     `Bouwvolgorde: ${phases.length} fases, ` +
     `${allMarkedIds.length} met Mark, ` +
     `${typeToIds.size} types, ` +
-    `${collectieToIds.size} collecties`
+    `${collectieToIds.size} collecties, ` +
+    `${cltTagIds.length} CLT tags`
   );
 
-  return { phases, markToIds, allMarkedIds, unmarkedIds, nodeIdToMark, typeToIds, nodeIdToType, collectieToIds };
+  return { phases, markToIds, allMarkedIds, unmarkedIds, nodeIdToMark, typeToIds, nodeIdToType, collectieToIds, cltTagIds };
 }
 
 interface FetchResult {
   mark: string | null;
   originalType: string | null;
+  /** True when mark was resolved via CLT_T_Mark (Text group) — indicates 00_CLT TAG family */
+  fromCltTag: boolean;
 }
 
 async function fetchMarkAndType(
@@ -157,25 +166,41 @@ async function fetchMarkAndType(
   try {
     const url = `${SPECKLE_SERVER}/objects/${projectId}/${objectId}/single`;
     const resp = await fetch(url);
-    if (!resp.ok) return { mark: null, originalType: null };
+    if (!resp.ok) return { mark: null, originalType: null, fromCltTag: false };
 
     const obj = await resp.json();
     const instanceParams =
       obj?.properties?.Parameters?.["Instance Parameters"];
-    if (!instanceParams) return { mark: null, originalType: null };
+
+    // --- CLT TAG detection: Generic Models with family "00_CLT TAG", or presence of
+    // CLT_T_Mark parameter. Runs independent of mark extraction, because CLT tags can
+    // pick up a mark via Identity Data instead of CLT_T_Mark.
+    let fromCltTag = false;
+    if (obj?.category === "Generic Models") {
+      const family = obj?.family ?? obj?.Family;
+      if (typeof family === "string" && family.toLowerCase().includes("clt tag")) {
+        fromCltTag = true;
+      }
+    }
+    const textGroup = instanceParams?.["Text"];
+    if (!fromCltTag && textGroup && (textGroup["CLT_T_Mark"] || textGroup["clt_t_mark"])) {
+      fromCltTag = true;
+    }
+
+    if (!instanceParams) return { mark: null, originalType: null, fromCltTag };
 
     // --- Mark ---
     let mark: string | null = null;
 
     // Check Text → CLT_T_Mark first (Generic Models with CLT tags)
     // Must be checked before Identity Data/Mark because CLT TAGs have Mark=0
-    const textGroup = instanceParams["Text"];
     if (textGroup) {
       const cltParam = textGroup["CLT_T_Mark"] || textGroup["clt_t_mark"];
       if (cltParam) {
         const value = cltParam.value ?? cltParam;
-        if (value !== null && value !== undefined && value !== "" && String(value) !== "0")
+        if (value !== null && value !== undefined && value !== "" && String(value) !== "0") {
           mark = String(value);
+        }
       }
     }
 
@@ -201,8 +226,8 @@ async function fetchMarkAndType(
       }
     }
 
-    return { mark, originalType };
+    return { mark, originalType, fromCltTag };
   } catch {
-    return { mark: null, originalType: null };
+    return { mark: null, originalType: null, fromCltTag: false };
   }
 }

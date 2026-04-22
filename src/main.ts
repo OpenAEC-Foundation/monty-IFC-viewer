@@ -9,6 +9,7 @@ import {
 } from "./ui/context-menu";
 import { createFilterPanel } from "./ui/filter-panel";
 import { parseMarks, PhaseManager, createTimelineUI } from "./addons/bouwvolgorde";
+import { setFilterStateMapping } from "./core/filter-state";
 import "./style.css";
 
 async function main(): Promise<void> {
@@ -195,7 +196,7 @@ async function main(): Promise<void> {
     }
 
     if (models.length > 1) {
-      const { button, panel } = createModelPanel(instance.viewer, models);
+      const { button, panel } = createModelPanel(instance, models);
       leftToolbar.appendChild(button);
       overlay?.appendChild(panel);
     }
@@ -230,9 +231,10 @@ async function initBouwvolgorde(
       return;
     }
 
-    // Share mapping with property panel and context menu for linked selection
+    // Share mapping with property panel, context menu and filter-state
     setPropertyPanelMapping(mapping);
     setContextMenuMapping(mapping);
+    setFilterStateMapping(mapping);
 
     const manager = new PhaseManager(instance, mapping);
     const timeline = createTimelineUI(manager);
