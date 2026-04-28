@@ -1,5 +1,6 @@
 import { initViewer, type ViewerInstance } from "./core/viewer-setup";
-import { parseStreamParams, loadStream } from "./core/stream-loader";
+import { parseStreamParams, loadStream, type StreamParams } from "./core/stream-loader";
+import { parseRoute, landingPath } from "./core/route";
 import { createToolbar } from "./ui/toolbar";
 import { createPropertyPanel, setPropertyPanelMapping } from "./ui/property-panel";
 import { createModelPanel } from "./ui/model-panel";
@@ -13,9 +14,9 @@ import { setFilterStateMapping } from "./core/filter-state";
 import "./style.css";
 
 async function main(): Promise<void> {
-  const clientSlug = new URLSearchParams(window.location.search).get("client");
-  if (clientSlug) {
-    window.location.href = `/landing/?client=${encodeURIComponent(clientSlug)}`;
+  const legacyClient = new URLSearchParams(window.location.search).get("client");
+  if (legacyClient) {
+    window.location.href = landingPath(legacyClient);
     return;
   }
 
@@ -26,21 +27,38 @@ async function main(): Promise<void> {
     throw new Error("Viewer container element not found");
   }
 
-  // Parse stream from URL
-  const streamParams = parseStreamParams();
-  if (!streamParams) {
-    const search = new URLSearchParams(window.location.search);
-    const hasModelQuery = search.has("project") || search.has("url");
+  // Resolve project: prefer path-based route (/{client}/pr{n}); fall back to legacy ?project=/?url=
+  const route = parseRoute();
+  let streamParams: StreamParams | null = null;
+  let backTarget: string | null = null;
 
-    if (!hasModelQuery) {
-      window.location.href = "/landing/";
+  if (route.project) {
+    streamParams = { projectId: route.project.id };
+    backTarget = landingPath(route.clientSlug);
+  } else if (route.config && !route.project) {
+    // /{client}/ without project — go to that client's landing
+    window.location.href = landingPath(route.clientSlug);
+    return;
+  } else {
+    streamParams = parseStreamParams();
+    const search = new URLSearchParams(window.location.search);
+    if (!streamParams) {
+      const hasModelQuery = search.has("project") || search.has("url");
+      if (!hasModelQuery) {
+        window.location.href = "/landing/";
+        return;
+      }
+      showMessage(
+        "Geen model opgegeven. Gebruik /{client}/pr{n} of ?project=..."
+      );
       return;
     }
-
-    showMessage(
-      "Geen model opgegeven. Gebruik ?project=... of ?url=https://app.montyviewer.com/projects/..."
-    );
-    return;
+    const fromSlug = search.get("from");
+    if (fromSlug) backTarget = landingPath(fromSlug);
+    // Scrub legacy params from the URL bar after load
+    if (search.has("project") || search.has("url") || search.has("model") || search.has("object") || search.has("from")) {
+      window.history.replaceState({}, "", window.location.pathname);
+    }
   }
 
   // Initialize Speckle viewer
@@ -53,15 +71,22 @@ async function main(): Promise<void> {
     return;
   }
 
-  // Back button to project overview (if navigated from landing page)
+  // Back button to project overview (if we know where to go back to)
   const overlay = document.getElementById("overlay");
-  const fromClient = new URLSearchParams(window.location.search).get("from");
-  if (fromClient && overlay) {
-    const backBtn = document.createElement("a");
+  if (backTarget && overlay) {
+    const backBtn = document.createElement("button");
     backBtn.id = "back-to-projects";
-    backBtn.href = `/?client=${fromClient}`;
     backBtn.title = "Terug naar projecten";
     backBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><polyline points="15 18 9 12 15 6"/></svg>`;
+    backBtn.addEventListener("click", () => {
+      const ref = document.referrer;
+      const sameOrigin = ref && new URL(ref).origin === location.origin;
+      if (sameOrigin && history.length > 1) {
+        history.back();
+      } else {
+        location.href = backTarget!;
+      }
+    });
     overlay.appendChild(backBtn);
   }
 

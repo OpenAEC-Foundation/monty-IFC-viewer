@@ -10,7 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@speckle/viewer": "2.25.4"
+    "@speckle/viewer": "2.25.4",
+    "zod": "^4.3.6"
   },
   "overrides": {
     "@speckle/objectloader2": "2.25.4",

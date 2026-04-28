@@ -39,9 +39,7 @@ export function parseStreamParams(): StreamParams | null {
   }
 
   const fullUrl = params.get("url");
-  if (fullUrl) {
-    return parseSpeckleUrl(fullUrl);
-  }
+  if (fullUrl) return parseSpeckleUrl(fullUrl);
 
   return null;
 }

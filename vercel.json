@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    { "source": "/:client", "destination": "/landing/index.html" },
+    { "source": "/:client/", "destination": "/landing/index.html" },
+    { "source": "/:client/:slug", "destination": "/index.html" },
+    { "source": "/:client/:slug/", "destination": "/index.html" }
+  ]
+}
