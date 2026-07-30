@@ -1,6 +1,33 @@
 import { SpeckleLoader, LoaderEvent, type IViewer } from "@speckle/viewer";
 import { SPECKLE_SERVER } from "./viewer-setup";
 
+/**
+ * Speckle access token for private projects. Read fresh per call — sourced, in
+ * order, from sessionStorage (where the planned OIDC layer writes the OpenAEC
+ * access token, see docs/superpowers/specs/2026-06-18-openaec-sso-viewer-design.md)
+ * then a dev-only build-time `VITE_SPECKLE_TOKEN`. Empty string → anonymous
+ * load, preserving the public-project behavior. Reading per call means a login
+ * that lands after page load is honored without a reload.
+ */
+function getSpeckleToken(): string {
+  try {
+    const stored = sessionStorage.getItem("speckle-token");
+    if (stored) return stored;
+  } catch {
+    // sessionStorage unavailable (privacy mode / sandboxed) — fall through
+  }
+  return import.meta.env.VITE_SPECKLE_TOKEN ?? "";
+}
+
+/** GraphQL request headers, adding a Bearer token when one is available. */
+function graphqlHeaders(): Record<string, string> {
+  const token = getSpeckleToken();
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
 export interface StreamParams {
   projectId: string;
   modelId?: string;
@@ -75,7 +102,7 @@ async function resolveAllBranches(projectId: string): Promise<BranchInfo[]> {
 
   const response = await fetch(`${SPECKLE_SERVER}/graphql`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: graphqlHeaders(),
     body: JSON.stringify({ query }),
   });
 
@@ -121,7 +148,7 @@ async function resolveBranchObjectId(
 
   const response = await fetch(`${SPECKLE_SERVER}/graphql`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: graphqlHeaders(),
     body: JSON.stringify({ query }),
   });
 
@@ -151,7 +178,11 @@ async function loadObject(
   const url = `${SPECKLE_SERVER}/streams/${projectId}/objects/${objectId}`;
   console.log("Loading:", url);
 
-  const loader = new SpeckleLoader(viewer.getWorldTree(), url, "");
+  const loader = new SpeckleLoader(
+    viewer.getWorldTree(),
+    url,
+    getSpeckleToken()
+  );
 
   if (onProgress) {
     loader.on(LoaderEvent.LoadProgress, (args: { progress: number }) => {

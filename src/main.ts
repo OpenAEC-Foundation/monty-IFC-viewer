@@ -13,7 +13,41 @@ import { parseMarks, PhaseManager, createTimelineUI } from "./addons/bouwvolgord
 import { setFilterStateMapping } from "./core/filter-state";
 import "./style.css";
 
+/**
+ * Token-bridge receiver. OpenAEC Accounts deep-links carry a per-user,
+ * project-scoped Speckle read token in the URL fragment
+ * (`…/?project=<id>#speckle_token=<jwt>`) so private projects load. The fragment
+ * is never sent to a server, so it stays out of access logs. Stash the token in
+ * sessionStorage (where stream-loader reads it) and strip it from the URL so it
+ * doesn't linger in the address bar or history.
+ */
+function captureSpeckleToken(): void {
+  const hash = window.location.hash;
+  if (hash.length < 2) return;
+
+  const params = new URLSearchParams(hash.slice(1));
+  const token = params.get("speckle_token");
+  if (!token) return;
+
+  try {
+    sessionStorage.setItem("speckle-token", token);
+  } catch {
+    // sessionStorage unavailable (privacy mode / sandboxed) — token won't persist
+  }
+
+  params.delete("speckle_token");
+  const rest = params.toString();
+  const cleanedHash = rest ? `#${rest}` : "";
+  window.history.replaceState(
+    {},
+    "",
+    window.location.pathname + window.location.search + cleanedHash
+  );
+}
+
 async function main(): Promise<void> {
+  captureSpeckleToken();
+
   const legacyClient = new URLSearchParams(window.location.search).get("client");
   if (legacyClient) {
     window.location.href = landingPath(legacyClient);

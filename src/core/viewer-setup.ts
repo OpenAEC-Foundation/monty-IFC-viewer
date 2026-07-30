@@ -12,7 +12,17 @@ import {
   type IViewer,
 } from "@speckle/viewer";
 
-const SPECKLE_SERVER = "https://app.montyviewer.com";
+/**
+ * Speckle server origin the viewer loads models from. Configurable via
+ * `VITE_SPECKLE_SERVER` so the same build can target the public montyviewer
+ * server or a self-hosted Speckle (e.g. https://speckle.openaec.localhost for
+ * OpenAEC Cloud `?project=<id>` deep-links). Falls back to the public default
+ * when the var is unset. Trailing slash stripped so `${SPECKLE_SERVER}/graphql`
+ * concatenation stays correct regardless of how the value is written.
+ */
+const SPECKLE_SERVER = (
+  import.meta.env.VITE_SPECKLE_SERVER ?? "https://app.montyviewer.com"
+).replace(/\/$/, "");
 
 export interface ViewerInstance {
   viewer: IViewer;

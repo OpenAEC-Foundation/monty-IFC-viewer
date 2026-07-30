@@ -5,3 +5,4 @@ dist/
 .env.*
 test-bv-*.png
 test-bouwvolgorde.mjs
+PROMPTS.md
